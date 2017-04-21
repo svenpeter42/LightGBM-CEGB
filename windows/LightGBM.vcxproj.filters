@@ -183,6 +183,9 @@
     <ClInclude Include="..\src\metric\map_metric.hpp">
       <Filter>src\metric</Filter>
     </ClInclude>
+    <ClInclude Include="..\include\LightGBM\utils\bitset.h">
+      <Filter>include\LightGBM\utils</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\application\application.cpp">

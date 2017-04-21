@@ -204,6 +204,7 @@
     <ClInclude Include="..\include\LightGBM\tree.h" />
     <ClInclude Include="..\include\LightGBM\tree_learner.h" />
     <ClInclude Include="..\include\LightGBM\utils\array_args.h" />
+    <ClInclude Include="..\include\LightGBM\utils\bitset.h" />
     <ClInclude Include="..\include\LightGBM\utils\common.h" />
     <ClInclude Include="..\include\LightGBM\utils\log.h" />
     <ClInclude Include="..\include\LightGBM\utils\openmp_wrapper.h" />
