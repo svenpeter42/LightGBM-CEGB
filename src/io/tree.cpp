@@ -15,11 +15,6 @@
 
 namespace LightGBM {
 
-std::vector<bool(*)(uint32_t, uint32_t)> Tree::inner_decision_funs =
-{ Tree::NumericalDecision<uint32_t>, Tree::CategoricalDecision<uint32_t> };
-std::vector<bool(*)(double, double)> Tree::decision_funs =
-{ Tree::NumericalDecision<double>, Tree::CategoricalDecision<double> };
-
 Tree::Tree(int max_leaves)
   :max_leaves_(max_leaves) {
 
@@ -29,7 +24,9 @@ Tree::Tree(int max_leaves)
   split_feature_inner = std::vector<int>(max_leaves_ - 1);
   split_feature_ = std::vector<int>(max_leaves_ - 1);
   threshold_in_bin_ = std::vector<uint32_t>(max_leaves_ - 1);
+  cat_threshold_in_bin_ = std::vector<Bitset>(max_leaves_ - 1);
   threshold_ = std::vector<double>(max_leaves_ - 1);
+  cat_threshold_ = std::vector<Bitset>(max_leaves_ - 1);
   decision_type_ = std::vector<int8_t>(max_leaves_ - 1);
   split_gain_ = std::vector<double>(max_leaves_ - 1);
   leaf_parent_ = std::vector<int>(max_leaves_);
@@ -49,9 +46,9 @@ Tree::~Tree() {
 
 }
 
-int Tree::Split(int leaf, int feature, BinType bin_type, uint32_t threshold_bin, int real_feature,
-    double threshold_double, double left_value,
-    double right_value, data_size_t left_cnt, data_size_t right_cnt, double gain) {
+int Tree::Split(int leaf, int feature, BinType bin_type, uint32_t threshold_bin, Bitset cat_threshold_bin, int real_feature,
+                double threshold_double, Bitset cat_threshold, double left_value,
+                double right_value, data_size_t left_cnt, data_size_t right_cnt, double gain) {
   int new_node_idx = num_leaves_ - 1;
   // update parent info
   int parent = leaf_parent_[leaf];
@@ -73,7 +70,9 @@ int Tree::Split(int leaf, int feature, BinType bin_type, uint32_t threshold_bin,
     decision_type_[new_node_idx] = 1;
   }
   threshold_in_bin_[new_node_idx] = threshold_bin;
+  cat_threshold_in_bin_[new_node_idx] = cat_threshold_bin;
   threshold_[new_node_idx] = threshold_double;
+  cat_threshold_[new_node_idx] = cat_threshold;
   split_gain_[new_node_idx] = gain == std::numeric_limits<double>::infinity() ? std::numeric_limits<double>::max() : gain;
   // add two new leaves
   left_child_[new_node_idx] = ~leaf;
@@ -111,9 +110,10 @@ void Tree::AddPredictionToScore(const Dataset* data, data_size_t num_data, doubl
         for (data_size_t i = start; i < end; ++i) {
           int node = 0;
           while (node >= 0) {
-            if (inner_decision_funs[decision_type_[node]](
-              iter[node]->Get(i),
-              threshold_in_bin_[node])) {
+            if (Decision<uint32_t>(decision_type_[node],
+                                   iter[node]->Get(i),
+                                   threshold_in_bin_[node],
+                                   cat_threshold_in_bin_[node])) {
               node = left_child_[node];
             } else {
               node = right_child_[node];
@@ -133,9 +133,10 @@ void Tree::AddPredictionToScore(const Dataset* data, data_size_t num_data, doubl
         for (data_size_t i = start; i < end; ++i) {
           int node = 0;
           while (node >= 0) {
-            if (inner_decision_funs[decision_type_[node]](
-              iter[split_feature_inner[node]]->Get(i),
-              threshold_in_bin_[node])) {
+              if (Decision<uint32_t>(decision_type_[node],
+                                     iter[split_feature_inner[node]]->Get(i),
+                                     threshold_in_bin_[node],
+                                     cat_threshold_in_bin_[node])) {
               node = left_child_[node];
             } else {
               node = right_child_[node];
@@ -209,9 +210,10 @@ void Tree::AddPredictionToScore(const Dataset* data,
           int node = 0;
           const data_size_t idx = used_data_indices[i];
           while (node >= 0) {
-            if (inner_decision_funs[decision_type_[node]](
-              iter[node]->Get(idx),
-              threshold_in_bin_[node])) {
+            if (Decision<uint32_t>(decision_type_[node],
+                                   iter[node]->Get(idx),
+                                   threshold_in_bin_[node],
+                                   cat_threshold_in_bin_[node])) {
               node = left_child_[node];
             } else {
               node = right_child_[node];
@@ -232,9 +234,10 @@ void Tree::AddPredictionToScore(const Dataset* data,
           const data_size_t idx = used_data_indices[i];
           int node = 0;
           while (node >= 0) {
-            if (inner_decision_funs[decision_type_[node]](
-              iter[split_feature_inner[node]]->Get(idx),
-              threshold_in_bin_[node])) {
+            if (Decision<uint32_t>(decision_type_[node],
+                                   iter[split_feature_inner[node]]->Get(idx),
+                                   threshold_in_bin_[node],
+                                   cat_threshold_in_bin_[node])) {
               node = left_child_[node];
             } else {
               node = right_child_[node];
@@ -292,7 +295,7 @@ void Tree::AddPredictionToScore(const Dataset* data,
   }
 }
 
-std::string Tree::ToString() {
+std::string Tree::to_string() const {
   std::stringstream str_buf;
   str_buf << "num_leaves=" << num_leaves_ << std::endl;
   str_buf << "split_feature="
@@ -301,6 +304,8 @@ std::string Tree::ToString() {
     << Common::ArrayToString<double>(split_gain_, num_leaves_ - 1, ' ') << std::endl;
   str_buf << "threshold="
     << Common::ArrayToString<double>(threshold_, num_leaves_ - 1, ' ') << std::endl;
+  str_buf << "cat_threshold="
+    << Common::ObjectArrayToString<Bitset>(cat_threshold_, num_leaves_ - 1, ' ') << std::endl;
   str_buf << "decision_type="
     << Common::ArrayToString<int>(Common::ArrayCast<int8_t, int>(decision_type_), num_leaves_ - 1, ' ') << std::endl;
   str_buf << "left_child="
@@ -323,7 +328,7 @@ std::string Tree::ToString() {
   return str_buf.str();
 }
 
-std::string Tree::ToJSON() {
+std::string Tree::ToJSON() const {
   std::stringstream str_buf;
   str_buf << std::setprecision(std::numeric_limits<double>::digits10 + 2);
   str_buf << "\"num_leaves\":" << num_leaves_ << "," << std::endl;
@@ -334,7 +339,7 @@ std::string Tree::ToJSON() {
   return str_buf.str();
 }
 
-std::string Tree::NodeToJSON(int index) {
+std::string Tree::NodeToJSON(int index) const {
   std::stringstream str_buf;
   str_buf << std::setprecision(std::numeric_limits<double>::digits10 + 2);
   if (index >= 0) {
@@ -344,6 +349,7 @@ std::string Tree::NodeToJSON(int index) {
     str_buf << "\"split_feature\":" << split_feature_[index] << "," << std::endl;
     str_buf << "\"split_gain\":" << split_gain_[index] << "," << std::endl;
     str_buf << "\"threshold\":" << threshold_[index] << "," << std::endl;
+    str_buf << "\"cat_threshold\":" << cat_threshold_[index].to_string() << "," << std::endl;
     str_buf << "\"decision_type\":\"" << Tree::GetDecisionTypeName(decision_type_[index]) << "\"," << std::endl;
     str_buf << "\"internal_value\":" << internal_value_[index] << "," << std::endl;
     str_buf << "\"internal_count\":" << internal_count_[index] << "," << std::endl;
@@ -407,6 +413,12 @@ Tree::Tree(const std::string& str) {
     threshold_ = Common::StringToArray<double>(key_vals["threshold"], ' ', num_leaves_ - 1);
   } else {
     Log::Fatal("Tree model string format error, should contain threshold field");
+  }
+
+  if (key_vals.count("cat_threshold")) {
+    cat_threshold_ = Common::StringToObjectArray<Bitset>(key_vals["cat_threshold"], ' ', num_leaves_ - 1);
+  } else {
+    Log::Fatal("Tree model string format error, should contain cat_threshold field");
   }
 
   if (key_vals.count("leaf_value")) {

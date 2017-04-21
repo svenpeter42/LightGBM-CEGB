@@ -201,7 +201,7 @@ public:
     return "lambdarank";
   }
 
-  std::string ToString() const override {
+  std::string to_string() const override {
     std::stringstream str_buf;
     str_buf << GetName();
     return str_buf.str();

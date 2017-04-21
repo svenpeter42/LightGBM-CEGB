@@ -105,7 +105,7 @@ public:
     return "multiclass";
   }
 
-  std::string ToString() const override {
+  std::string to_string() const override {
     std::stringstream str_buf;
     str_buf << GetName() << " ";
     str_buf << "num_class:" << num_class_;
@@ -194,7 +194,7 @@ public:
     }
   }
 
-  std::string ToString() const override {
+  std::string to_string() const override {
     std::stringstream str_buf;
     str_buf << GetName() << " ";
     str_buf << "num_class:" << num_class_ << " ";

@@ -47,7 +47,7 @@ public:
     return "regression";
   }
 
-  std::string ToString() const override {
+  std::string to_string() const override {
     std::stringstream str_buf;
     str_buf << GetName();
     return str_buf.str();
@@ -124,7 +124,7 @@ public:
     return "regression_l1";
   }
 
-  std::string ToString() const override {
+  std::string to_string() const override {
     std::stringstream str_buf;
     str_buf << GetName();
     return str_buf.str();
@@ -209,7 +209,7 @@ public:
     return "huber";
   }
 
-  std::string ToString() const override {
+  std::string to_string() const override {
     std::stringstream str_buf;
     str_buf << GetName();
     return str_buf.str();
@@ -273,7 +273,7 @@ public:
     return "fair";
   }
 
-  std::string ToString() const override {
+  std::string to_string() const override {
     std::stringstream str_buf;
     str_buf << GetName();
     return str_buf.str();
@@ -335,7 +335,7 @@ public:
     return "poisson";
   }
 
-  std::string ToString() const override {
+  std::string to_string() const override {
     std::stringstream str_buf;
     str_buf << GetName();
     return str_buf.str();

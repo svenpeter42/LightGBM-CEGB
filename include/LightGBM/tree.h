@@ -1,6 +1,8 @@
 #ifndef LIGHTGBM_TREE_H_
 #define LIGHTGBM_TREE_H_
 
+#include <LightGBM/utils/bitset.h>
+
 #include <LightGBM/meta.h>
 #include <LightGBM/dataset.h>
 
@@ -46,8 +48,8 @@ public:
   * \param gain Split gain
   * \return The index of new leaf.
   */
-  int Split(int leaf, int feature, BinType bin_type, uint32_t threshold, int real_feature,
-            double threshold_double, double left_value,
+  int Split(int leaf, int feature, BinType bin_type, uint32_t threshold_bin, Bitset cat_threshold_bin, int real_feature,
+            double threshold_double, Bitset cat_threshold, double left_value,
             double right_value, data_size_t left_cnt, data_size_t right_cnt, double gain);
 
   /*! \brief Get the output of one leaf */
@@ -112,14 +114,13 @@ public:
   }
 
   /*! \brief Serialize this object to string*/
-  std::string ToString();
+  std::string to_string() const ;
 
   /*! \brief Serialize this object to json*/
-  std::string ToJSON();
+  std::string ToJSON() const ;
 
-  template<typename T>
-  static bool CategoricalDecision(T fval, T threshold) {
-    if (static_cast<int>(fval) == static_cast<int>(threshold)) {
+  static bool CategoricalDecision(int id, const Bitset& cat_threshold) {
+    if (cat_threshold.Get(id)) {
       return true;
     } else {
       return false;
@@ -135,6 +136,15 @@ public:
     }
   }
 
+  template<typename T>
+  static bool Decision(int8_t type, T fval, T threshold, const Bitset& cat_threshold) {
+    if (type == 0) {
+      return NumericalDecision<T>(fval, threshold);
+    } else {
+      return CategoricalDecision(static_cast<int>(fval), cat_threshold);
+    }
+  }
+
   static const char* GetDecisionTypeName(int8_t type) {
     if (type == 0) {
       return "no_greater";
@@ -142,9 +152,6 @@ public:
       return "is";
     }
   }
-
-  static std::vector<bool(*)(uint32_t, uint32_t)> inner_decision_funs;
-  static std::vector<bool(*)(double, double)> decision_funs;
 
 private:
 
@@ -156,7 +163,7 @@ private:
   inline int GetLeaf(const double* feature_values) const;
 
   /*! \brief Serialize one node to json*/
-  inline std::string NodeToJSON(int index);
+  inline std::string NodeToJSON(int index) const;
 
   /*! \brief Number of max leaves*/
   int max_leaves_;
@@ -173,8 +180,10 @@ private:
   std::vector<int> split_feature_;
   /*! \brief A non-leaf node's split threshold in bin */
   std::vector<uint32_t> threshold_in_bin_;
+  std::vector<Bitset> cat_threshold_in_bin_;
   /*! \brief A non-leaf node's split threshold in feature value */
   std::vector<double> threshold_;
+  std::vector<Bitset> cat_threshold_;
   /*! \brief Decision type, 0 for '<='(numerical feature), 1 for 'is'(categorical feature) */
   std::vector<int8_t> decision_type_;
   /*! \brief A non-leaf node's split gain */
@@ -218,9 +227,10 @@ inline int Tree::GetLeaf(const double* feature_values) const {
   int node = 0;
   if (has_categorical_) {
     while (node >= 0) {
-      if (decision_funs[decision_type_[node]](
-        feature_values[split_feature_[node]],
-        threshold_[node])) {
+      if (Decision<double>(decision_type_[node],
+                           feature_values[split_feature_[node]],
+                           threshold_[node],
+                           cat_threshold_[node])) {
         node = left_child_[node];
       } else {
         node = right_child_[node];

@@ -120,7 +120,7 @@ public:
     output[0] = 1.0f / (1.0f + std::exp(-sigmoid_ * input[0]));
   }
 
-  std::string ToString() const override {
+  std::string to_string() const override {
     std::stringstream str_buf;
     str_buf << GetName() << " ";
     str_buf << "sigmoid:" << sigmoid_;

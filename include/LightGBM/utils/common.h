@@ -271,6 +271,21 @@ inline static std::string ArrayToString(const std::vector<T>& arr, size_t n, cha
   return str_buf.str();
 }
 
+template<typename T>
+inline static std::string ObjectArrayToString(const std::vector<T>& arr, size_t n, char delimiter) {
+  if (arr.empty() || n == 0) {
+    return std::string("");
+  }
+  std::stringstream str_buf;
+  str_buf << std::setprecision(std::numeric_limits<double>::digits10 + 2);
+  str_buf << arr[0].to_string();
+  for (size_t i = 1; i < std::min(n, arr.size()); ++i) {
+    str_buf << delimiter;
+    str_buf << arr[i].to_string();
+  }
+  return str_buf.str();
+}
+
 template<typename T, bool is_float>
 struct __StringToTHelper {
   T operator()(const std::string& str) const {
@@ -298,6 +313,22 @@ inline static std::vector<T> StringToArray(const std::string& str, char delimite
   __StringToTHelper<T, std::is_floating_point<T>::value> helper;
   for (size_t i = 0; i < n; ++i) {
     ret[i] = helper(strs[i]);
+  }
+  return ret;
+}
+
+template<typename T>
+inline static std::vector<T> StringToObjectArray(const std::string& str, char delimiter, size_t n) {
+  if (n == 0) {
+    return std::vector<T>();
+  }
+  std::vector<std::string> strs = Split(str.c_str(), delimiter);
+  if (strs.size() != n) {
+    Log::Fatal("StringToArray error, size doesn't match.");
+  }
+  std::vector<T> ret(n);
+  for (size_t i = 0; i < n; ++i) {
+    ret[i] = T(strs[i]);
   }
   return ret;
 }

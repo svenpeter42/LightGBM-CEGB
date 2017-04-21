@@ -10,6 +10,7 @@
 
 namespace LightGBM {
 
+// To-do. Not save the head and tailing zeros. 
 class Bitset {
 public:
   Bitset() { data_.resize(1, 0); }
@@ -23,14 +24,15 @@ public:
     s = Common::Trim(s);
     auto n = s.size();
     data_.resize(n, 0);
-    for (size_t i = 0; i < n; ++i)
+    for (size_t i = 0; i < n; ++i) {
       if (s[i] == '1') {
         data_[i] = 1;
       }
+    }
   }
 
-  void Set(int i, int n) {
-    data_[i] = n;
+  void Set(int i, bool v) {
+    data_[i] = v;
   }
 
   bool Get(int i) const {
@@ -40,7 +42,7 @@ public:
     return data_[i];
   }
 
-  std::string toString() {
+  std::string to_string() const {
     std::stringstream str_buf;
     for (size_t i = 0; i < data_.size(); ++i) {
       if (data_[i]) { 
