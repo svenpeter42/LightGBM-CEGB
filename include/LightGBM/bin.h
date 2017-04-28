@@ -355,6 +355,23 @@ public:
   virtual void ConstructHistogram(data_size_t num_data,
                                   const score_t* ordered_gradients, HistogramBinEntry* out) const = 0;
 
+
+  virtual void ConstructHistogramMultiNode(const int* row_idx_2_node_idx, data_size_t num_data,
+                                           const score_t* gradient, const score_t* hessian,
+                                           int num_bin, HistogramBinEntry* out) const = 0;
+
+  virtual void ConstructHistogramMultiNode(const int* row_idx_2_node_idx, data_size_t num_data,
+                                           const score_t* gradient,
+                                           int num_bin, HistogramBinEntry* out) const = 0;
+
+  virtual void ConstructHistogramMultiNode(const int* row_idx_2_node_idx, const data_size_t* data_indices, data_size_t num_data,
+                                           const score_t* gradient, const score_t* hessian,
+                                           int num_bin, HistogramBinEntry* out) const = 0;
+
+  virtual void ConstructHistogramMultiNode(const int* row_idx_2_node_idx, const data_size_t* data_indices, data_size_t num_data,
+                                           const score_t* gradient,
+                                           int num_bin, HistogramBinEntry* out) const = 0;
+
   /*!
   * \brief Split data according to threshold, if bin <= threshold, will put into left(lte_indices), else put into right(gt_indices)
   * \param min_bin min_bin of current used feature

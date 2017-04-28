@@ -122,6 +122,80 @@ public:
     Log::Fatal("Using OrderedSparseBin->ConstructHistogram() instead");
   }
 
+  void ConstructHistogramMultiNode(const int* row_idx_2_node_idx, data_size_t,
+                                   const score_t* gradient, const score_t* hessian,
+                                   int num_bin, HistogramBinEntry* out) const override {
+    data_size_t j = 0;
+    data_size_t cur_pos = 0;
+    data_size_t i_delta = -1;
+    while (NextNonzero(&i_delta, &cur_pos)) {
+      const int node = row_idx_2_node_idx[cur_pos];
+      if (node >= 0) {
+        const auto bin = vals_[i_delta];
+        auto out_ptr = out + node * num_bin;
+        out_ptr[bin].sum_gradients += gradient[cur_pos];
+        out_ptr[bin].sum_hessians += hessian[cur_pos];
+        ++out_ptr[bin].cnt;
+      }
+      ++j;
+    }
+  }
+
+  void ConstructHistogramMultiNode(const int* row_idx_2_node_idx, data_size_t,
+                                   const score_t* gradient,
+                                   int num_bin, HistogramBinEntry* out) const override {
+    data_size_t j = 0;
+    data_size_t cur_pos = 0;
+    data_size_t i_delta = -1;
+    while (NextNonzero(&i_delta, &cur_pos)) {
+      const int node = row_idx_2_node_idx[cur_pos];
+      if (node >= 0) {
+        const auto bin = vals_[i_delta];
+        auto out_ptr = out + node * num_bin;
+        out_ptr[bin].sum_gradients += gradient[cur_pos];
+        ++out_ptr[bin].cnt;
+      }
+      ++j;
+    }
+  }
+
+  void ConstructHistogramMultiNode(const int* row_idx_2_node_idx, const data_size_t*, data_size_t,
+                                   const score_t* gradient, const score_t* hessian,
+                                   int num_bin, HistogramBinEntry* out) const override {
+    data_size_t j = 0;
+    data_size_t cur_pos = 0;
+    data_size_t i_delta = -1;
+    while (NextNonzero(&i_delta, &cur_pos)) {
+      const int node = row_idx_2_node_idx[cur_pos];
+      if (node >= 0) {
+        const auto bin = vals_[i_delta];
+        auto out_ptr = out + node * num_bin;
+        out_ptr[bin].sum_gradients += gradient[cur_pos];
+        out_ptr[bin].sum_hessians += hessian[cur_pos];
+        ++out_ptr[bin].cnt;
+      }
+      ++j;
+    }
+  }
+
+  void ConstructHistogramMultiNode(const int* row_idx_2_node_idx, const data_size_t*, data_size_t,
+                                   const score_t* gradient,
+                                   int num_bin, HistogramBinEntry* out) const override {
+    data_size_t j = 0;
+    data_size_t cur_pos = 0;
+    data_size_t i_delta = -1;
+    while (NextNonzero(&i_delta, &cur_pos)) {
+      const int node = row_idx_2_node_idx[cur_pos];
+      if (node >= 0) {
+        const auto bin = vals_[i_delta];
+        auto out_ptr = out + node * num_bin;
+        out_ptr[bin].sum_gradients += gradient[cur_pos];
+        ++out_ptr[bin].cnt;
+      }
+      ++j;
+    }
+  }
+
   inline bool NextNonzero(data_size_t* i_delta,
                           data_size_t* cur_pos) const {
     ++(*i_delta);

@@ -187,6 +187,62 @@ public:
     }
   }
 
+  void ConstructHistogramMultiNode(const int* row_idx_2_node_idx, data_size_t num_data,
+                                   const score_t* gradient, const score_t* hessian,
+                                   int num_bin, HistogramBinEntry* out) const override {
+    for (data_size_t i = 0; i < num_data; ++i) {
+      const int node = row_idx_2_node_idx[i];
+      if (node >= 0) {
+        const VAL_T bin = data_[i];
+        auto out_ptr = out + node * num_bin;
+        out_ptr[bin].sum_gradients += gradient[i];
+        out_ptr[bin].sum_hessians += hessian[i];
+        ++out_ptr[bin].cnt;
+      }
+    }
+  }
+
+  void ConstructHistogramMultiNode(const int* row_idx_2_node_idx, data_size_t num_data,
+                                   const score_t* gradient,
+                                   int num_bin, HistogramBinEntry* out) const override {
+    for (data_size_t i = 0; i < num_data; ++i) {
+      const int node = row_idx_2_node_idx[i];
+      if (node >= 0) {
+        const VAL_T bin = data_[i];
+        auto out_ptr = out + node * num_bin;
+        out_ptr[bin].sum_gradients += gradient[i];
+        ++out_ptr[bin].cnt;
+      }
+    }
+  }
+
+  void ConstructHistogramMultiNode(const int* row_idx_2_node_idx, const data_size_t* data_indices, data_size_t num_data,
+                                   const score_t* gradient, const score_t* hessian,
+                                   int num_bin, HistogramBinEntry* out) const override {
+    for (data_size_t i = 0; i < num_data; ++i) {
+      const data_size_t idx = data_indices[i];
+      const int node = row_idx_2_node_idx[idx];
+      const VAL_T bin = data_[idx];
+      auto out_ptr = out + node * num_bin;
+      out_ptr[bin].sum_gradients += gradient[idx];
+      out_ptr[bin].sum_hessians += hessian[idx];
+      ++out_ptr[bin].cnt;
+    }
+  }
+
+  void ConstructHistogramMultiNode(const int* row_idx_2_node_idx, const data_size_t* data_indices, data_size_t num_data,
+                                   const score_t* gradient,
+                                   int num_bin, HistogramBinEntry* out) const override {
+    for (data_size_t i = 0; i < num_data; ++i) {
+      const data_size_t idx = data_indices[i];
+      const int node = row_idx_2_node_idx[idx];
+      const VAL_T bin = data_[idx];
+      auto out_ptr = out + node * num_bin;
+      out_ptr[bin].sum_gradients += gradient[idx];
+      ++out_ptr[bin].cnt;
+    }
+  }
+
   virtual data_size_t Split(
     uint32_t min_bin, uint32_t max_bin, uint32_t default_bin,
     uint32_t threshold, data_size_t* data_indices, data_size_t num_data,

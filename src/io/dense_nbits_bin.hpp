@@ -226,6 +226,106 @@ public:
     }
   }
 
+  void ConstructHistogramMultiNode(const int* row_idx_2_node_idx, data_size_t num_data,
+                                   const score_t* gradient, const score_t* hessian,
+                                   int num_bin, HistogramBinEntry* out) const override {
+    const data_size_t rest = num_data & 0x1;
+    data_size_t i = 0;
+
+    for (; i < num_data - rest; i += 2) {
+      const int node0 = row_idx_2_node_idx[i];
+      const int node1 = row_idx_2_node_idx[i + 1];
+      int j = i >> 1;
+      if (node0 >= 0) {
+        const auto bin0 = (data_[j]) & 0xf;
+        auto out_ptr = out + node0 * num_bin;
+        out_ptr[bin0].sum_gradients += gradient[i];
+        out_ptr[bin0].sum_hessians += hessian[i];
+        ++out_ptr[bin0].cnt;
+      }
+      if (node1 >= 0) {
+        const auto bin1 = (data_[j] >> 4) & 0xf;
+        auto out_ptr = out + node1 * num_bin;
+        out_ptr[bin1].sum_gradients += gradient[i];
+        out_ptr[bin1].sum_hessians += hessian[i];
+        ++out_ptr[bin1].cnt;
+      }
+    }
+
+    for (; i < num_data; ++i) {
+      const int node = row_idx_2_node_idx[i];
+      if (node >= 0) {
+        const auto bin = (data_[i >> 1] >> ((i & 1) << 2)) & 0xf;
+        auto out_ptr = out + node * num_bin;
+        out_ptr[bin].sum_gradients += gradient[i];
+        out_ptr[bin].sum_hessians += hessian[i];
+        ++out_ptr[bin].cnt;
+      }
+    }
+  }
+
+  void ConstructHistogramMultiNode(const int* row_idx_2_node_idx, data_size_t num_data,
+                                   const score_t* gradient,
+                                   int num_bin, HistogramBinEntry* out) const override {
+    const data_size_t rest = num_data & 0x1;
+    data_size_t i = 0;
+
+    for (; i < num_data - rest; i += 2) {
+      const int node0 = row_idx_2_node_idx[i];
+      const int node1 = row_idx_2_node_idx[i + 1];
+      int j = i >> 1;
+      if (node0 >= 0) {
+        const auto bin0 = (data_[j]) & 0xf;
+        auto out_ptr = out + node0 * num_bin;
+        out_ptr[bin0].sum_gradients += gradient[i];
+        ++out_ptr[bin0].cnt;
+      }
+      if (node1 >= 0) {
+        const auto bin1 = (data_[j] >> 4) & 0xf;
+        auto out_ptr = out + node1 * num_bin;
+        out_ptr[bin1].sum_gradients += gradient[i];
+        ++out_ptr[bin1].cnt;
+      }
+    }
+
+    for (; i < num_data; ++i) {
+      const int node = row_idx_2_node_idx[i];
+      if (node >= 0) {
+        const auto bin = (data_[i >> 1] >> ((i & 1) << 2)) & 0xf;
+        auto out_ptr = out + node * num_bin;
+        out_ptr[bin].sum_gradients += gradient[i];
+        ++out_ptr[bin].cnt;
+      }
+    }
+  }
+
+  void ConstructHistogramMultiNode(const int* row_idx_2_node_idx, const data_size_t* data_indices, data_size_t num_data,
+                                   const score_t* gradient, const score_t* hessian,
+                                   int num_bin, HistogramBinEntry* out) const override {
+    for (data_size_t i = 0; i < num_data; ++i) {
+      const data_size_t idx = data_indices[i];
+      const auto bin = (data_[idx >> 1] >> ((idx & 1) << 2)) & 0xf;
+      const int node = row_idx_2_node_idx[idx];
+      auto out_ptr = out + node * num_bin;
+      out_ptr[bin].sum_gradients += gradient[idx];
+      out_ptr[bin].sum_hessians += hessian[idx];
+      ++out_ptr[bin].cnt;
+    }
+  }
+
+  void ConstructHistogramMultiNode(const int* row_idx_2_node_idx, const data_size_t* data_indices, data_size_t num_data,
+                                   const score_t* gradient,
+                                   int num_bin, HistogramBinEntry* out) const override {
+    for (data_size_t i = 0; i < num_data; ++i) {
+      const data_size_t idx = data_indices[i];
+      const auto bin = (data_[idx >> 1] >> ((idx & 1) << 2)) & 0xf;
+      const int node = row_idx_2_node_idx[idx];
+      auto out_ptr = out + node * num_bin;
+      out_ptr[bin].sum_gradients += gradient[idx];
+      ++out_ptr[bin].cnt;
+    }
+  }
+
   virtual data_size_t Split(
     uint32_t min_bin, uint32_t max_bin, uint32_t default_bin,
     uint32_t threshold, data_size_t* data_indices, data_size_t num_data,
