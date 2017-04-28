@@ -183,6 +183,9 @@
     <ClInclude Include="..\src\metric\map_metric.hpp">
       <Filter>src\metric</Filter>
     </ClInclude>
+    <ClInclude Include="..\src\treelearner\serial_level_wise_tree_learner.h">
+      <Filter>src\treelearner</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\src\application\application.cpp">
