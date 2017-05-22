@@ -2,6 +2,7 @@
 #include "gbdt.h"
 #include "dart.hpp"
 #include "goss.hpp"
+#include "cegb.hpp"
 
 namespace LightGBM {
 
@@ -32,6 +33,8 @@ Boosting* Boosting::CreateBoosting(const std::string& type, const char* filename
       return new GBDT();
     } else if (type == std::string("dart")) {
       return new DART();
+    } else if (type == std::string("cegb")) {
+      return new CEGB();
     } else if (type == std::string("goss")) {
       return new GOSS();
     } else {
@@ -45,6 +48,8 @@ Boosting* Boosting::CreateBoosting(const std::string& type, const char* filename
         ret.reset(new GBDT());
       } else if (type == std::string("dart")) {
         ret.reset(new DART());
+      } else if (type == std::string("cegb")) {
+        ret.reset(new CEGB());
       } else if (type == std::string("goss")) {
         ret.reset(new GOSS());
       } else {
