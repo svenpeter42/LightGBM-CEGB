@@ -5,7 +5,7 @@
 #include <LightGBM/tree_learner.h>
 
 // FIXME:
-#include "../treelearner/serial_tree_learner.h"
+#include "../treelearner/cegb_tree_learner.h"
 #include "score_updater.hpp"
 #include "gbdt.h"
 
@@ -15,6 +15,7 @@
 #include <fstream>
 
 namespace LightGBM {
+
 /*!
 * \brief CEGB algorithm implementation. including Training, prediction.
 */
@@ -48,9 +49,27 @@ public:
     ResetFeatureTracking();
   }
 
+  /*!
+  * \brief one training iteration
+  */
+  bool TrainOneIter(const score_t* gradient, const score_t* hessian, bool is_eval) override {
+    if (gbdt_config_->cegb_config.gm_mode)
+      iter_features_used.clear();
+
+    bool res = GBDT::TrainOneIter(gradient, hessian, is_eval);
+
+    if (gbdt_config_->cegb_config.gm_mode) {
+      for (int i_feature : iter_features_used)
+        coupled_feature_used[i_feature] = true;
+    }
+
+    return res;
+  }
+
 private:
     std::vector<bool> lazy_feature_used;
     std::vector<bool> coupled_feature_used;
+    std::vector<int> iter_features_used;
 
   void ResetFeatureTracking()
   {
@@ -68,7 +87,7 @@ private:
       Log::Fatal("CEGB currently only supports serial tree learner, '%s' is unsupported.", config->tree_learner_type);
     if (tree_learner_ != nullptr)
       return;
-    tree_learner_ = std::unique_ptr<TreeLearner>((TreeLearner *)new SerialTreeLearner(&config->tree_config));
+    tree_learner_ = std::unique_ptr<TreeLearner>((TreeLearner *)new CEGBTreeLearner(&config->tree_config, &config->cegb_config, lazy_feature_used, coupled_feature_used));
   }
 };
 
