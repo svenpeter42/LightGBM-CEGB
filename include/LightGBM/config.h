@@ -12,6 +12,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include <memory>
+#include <map>
 
 namespace LightGBM {
 
@@ -221,6 +222,25 @@ public:
   LIGHTGBM_EXPORT void Set(const std::unordered_map<std::string, std::string>& params) override;
 };
 
+
+/*! \brief Config for CEGB */
+struct CEGBConfig: public ConfigBase {
+public:
+  double tradeoff;
+  double penalty_split;
+  bool gm_mode;
+
+  std::map<int, double> penalty_feature_lazy;
+  std::map<int, double> penalty_feature_coupled;
+
+  LIGHTGBM_EXPORT void Set(const std::unordered_map<std::string, std::string>& params) override;
+
+private:
+  void GetPenaltyFeature(std::string &, std::map<int, double> &);
+};
+
+
+
 /*! \brief Config for Boosting */
 struct BoostingConfig: public ConfigBase {
 public:
@@ -248,6 +268,7 @@ public:
   std::string tree_learner_type = "serial";
   std::string device_type = "cpu";
   TreeConfig tree_config;
+  CEGBConfig cegb_config;
   LIGHTGBM_EXPORT void Set(const std::unordered_map<std::string, std::string>& params) override;
 private:
   void GetTreeLearnerType(const std::unordered_map<std::string,

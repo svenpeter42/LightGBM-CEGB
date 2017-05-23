@@ -78,6 +78,8 @@ void OverallConfig::GetBoostingType(const std::unordered_map<std::string, std::s
     std::transform(value.begin(), value.end(), value.begin(), Common::tolower);
     if (value == std::string("gbdt") || value == std::string("gbrt")) {
       boosting_type = "gbdt";
+      } else if (value == std::string("cegb")) {
+      boosting_type = "cegb";
     } else if (value == std::string("dart")) {
       boosting_type = "dart";
     } else if (value == std::string("goss")) {
@@ -336,6 +338,48 @@ void TreeConfig::Set(const std::unordered_map<std::string, std::string>& params)
   GetBool(params, "use_missing", &use_missing);
 }
 
+void CEGBConfig::Set(const std::unordered_map<std::string, std::string>& params) {
+  GetDouble(params, "cegb_tradeoff", &tradeoff);
+  CHECK(tradeoff >= 0.0f);
+  GetDouble(params, "cegb_penalty_split", &penalty_split);
+  CHECK(penalty_split >= 0.0f);
+  GetBool(params, "cegb_gm_mode", &gm_mode);
+
+  std::string value;
+  if (GetString(params, "cegb_penalty_feature_lazy", &value))
+    GetPenaltyFeature(value, penalty_feature_lazy);
+  if (GetString(params, "cegb_penalty_feature_coupled", &value))
+    GetPenaltyFeature(value, penalty_feature_coupled);
+}
+
+void CEGBConfig::GetPenaltyFeature(std::string &value, std::map<int, double> &target)
+{
+  target.clear();
+
+  // to lower - probably not required since this should be all numbers anyways
+  std::transform(value.begin(), value.end(), value.begin(), Common::tolower);
+
+
+  std::vector<std::string> penalties = Common::Split(value.c_str(), ',');
+  for (auto& penalty : penalties) {
+    std::vector<std::string> tmp = Common::Split(penalty.c_str(), ':');
+
+    if (tmp.size() == 0)
+      continue;
+
+    if (tmp.size() != 2)
+      Log::Fatal("Unknown feature penalty: \"%s\"", penalty.c_str());
+
+    std::pair<int, double> i_penalty;
+    if (!Common::AtoiAndCheck(tmp[0].c_str(), &i_penalty.first))
+      Log::Fatal("Feature value should be of type int, got \"%s\"", tmp[0].c_str());
+    if (!Common::AtofAndCheck(tmp[1].c_str(), &i_penalty.second))
+      Log::Fatal("Feature penalty should be of type double, got \"%s\"", tmp[1].c_str());
+
+    target.insert(i_penalty);
+  }
+}
+
 
 void BoostingConfig::Set(const std::unordered_map<std::string, std::string>& params) {
   GetInt(params, "num_iterations", &num_iterations);
@@ -368,6 +412,7 @@ void BoostingConfig::Set(const std::unordered_map<std::string, std::string>& par
   GetDeviceType(params);
   GetTreeLearnerType(params);
   tree_config.Set(params);
+  cegb_config.Set(params);
 }
 
 void BoostingConfig::GetTreeLearnerType(const std::unordered_map<std::string, std::string>& params) {
