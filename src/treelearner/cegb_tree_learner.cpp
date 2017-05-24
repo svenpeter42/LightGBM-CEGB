@@ -10,7 +10,7 @@ namespace LightGBM {
 // features
 void CEGBTreeLearner::FindBestThresholds() {
   std::vector<int8_t> is_feature_used(num_features_, 0);
-  #pragma omp parallel for schedule(static, 1024) if (num_features_ >= 2048)
+#pragma omp parallel for schedule(static, 1024) if (num_features_ >= 2048)
   for (int feature_index = 0; feature_index < num_features_; ++feature_index) {
     if (!is_feature_used_[feature_index])
       continue;
@@ -27,25 +27,29 @@ void CEGBTreeLearner::FindBestThresholds() {
     use_subtract = false;
   }
   ConstructHistograms(is_feature_used, use_subtract);
-  #ifdef TIMETAG
+#ifdef TIMETAG
   auto start_time = std::chrono::steady_clock::now();
-  #endif
+#endif
   // std::vector<SplitInfo> smaller_best(num_threads_);
   // std::vector<SplitInfo> larger_best(num_threads_);
 
   std::vector<SplitInfo> smaller_all(num_features_);
   std::vector<SplitInfo> larger_all(num_features_);
 
-  int leaf = smaller_leaf_splits_->LeafIndex();
-  leaf_feature_penalty[leaf].resize(num_features_);
+  int leaf;
 
-  leaf = larger_leaf_splits_->LeafIndex();
-  if (larger_leaf_splits_ != nullptr && leaf >= 0)
+  if (need_lazy_features) {
+    leaf = smaller_leaf_splits_->LeafIndex();
     leaf_feature_penalty[leaf].resize(num_features_);
 
+    leaf = larger_leaf_splits_->LeafIndex();
+    if (larger_leaf_splits_ != nullptr && leaf >= 0)
+      leaf_feature_penalty[leaf].resize(num_features_);
+  }
+
   OMP_INIT_EX();
-  // find splits
-  #pragma omp parallel for schedule(static)
+// find splits
+#pragma omp parallel for schedule(static)
   for (int feature_index = 0; feature_index < num_features_; ++feature_index) {
     OMP_LOOP_EX_BEGIN();
     if (!is_feature_used[feature_index]) {
@@ -67,10 +71,11 @@ void CEGBTreeLearner::FindBestThresholds() {
     smaller_all[feature_index].feature =
         train_data_->RealFeatureIndex(feature_index);
 
-    leaf = smaller_leaf_splits_->LeafIndex();
-    leaf_feature_penalty[leaf][feature_index] = CalculateOndemandCosts(
-        train_data_->RealFeatureIndex(feature_index), leaf);
-
+    if (need_lazy_features) {
+      leaf = smaller_leaf_splits_->LeafIndex();
+      leaf_feature_penalty[leaf][feature_index] = CalculateOndemandCosts(
+          train_data_->RealFeatureIndex(feature_index), leaf);
+    }
     // if (smaller_split.gain > smaller_best[tid].gain) {
     //  smaller_best[tid] = smaller_split;
     //  smaller_best[tid].feature =
@@ -83,9 +88,11 @@ void CEGBTreeLearner::FindBestThresholds() {
       continue;
     }
 
-    leaf = larger_leaf_splits_->LeafIndex();
-    leaf_feature_penalty[leaf][feature_index] = CalculateOndemandCosts(
-        train_data_->RealFeatureIndex(feature_index), leaf);
+    if (need_lazy_features) {
+      leaf = larger_leaf_splits_->LeafIndex();
+      leaf_feature_penalty[leaf][feature_index] = CalculateOndemandCosts(
+          train_data_->RealFeatureIndex(feature_index), leaf);
+    }
 
     if (use_subtract) {
       larger_leaf_histogram_array_[feature_index].Subtract(
@@ -123,24 +130,31 @@ void CEGBTreeLearner::FindBestThresholds() {
     leaf_feature_splits[leaf] = larger_all;
   }
 
-  // auto smaller_best_idx = ArrayArgs<SplitInfo>::ArgMax(smaller_best);
-  // int leaf = smaller_leaf_splits_->LeafIndex();
-  // best_split_per_leaf_[leaf] = smaller_best[smaller_best_idx]; 
+// auto smaller_best_idx = ArrayArgs<SplitInfo>::ArgMax(smaller_best);
+// int leaf = smaller_leaf_splits_->LeafIndex();
+// best_split_per_leaf_[leaf] = smaller_best[smaller_best_idx];
 
-  // if (larger_leaf_splits_ != nullptr && larger_leaf_splits_->LeafIndex() >= 0)
-  // {
-  //  leaf = larger_leaf_splits_->LeafIndex();
-  //  auto larger_best_idx = ArrayArgs<SplitInfo>::ArgMax(larger_best);
-  //  best_split_per_leaf_[leaf] = larger_best[larger_best_idx];
-  //}
-  #ifdef TIMETAG
+// if (larger_leaf_splits_ != nullptr && larger_leaf_splits_->LeafIndex() >= 0)
+// {
+//  leaf = larger_leaf_splits_->LeafIndex();
+//  auto larger_best_idx = ArrayArgs<SplitInfo>::ArgMax(larger_best);
+//  best_split_per_leaf_[leaf] = larger_best[larger_best_idx];
+//}
+#ifdef TIMETAG
   find_split_time += std::chrono::steady_clock::now() - start_time;
-  #endif
+#endif
 }
 
 double CEGBTreeLearner::CalculateOndemandCosts(int feature_index,
                                                int leaf_index) {
-  double penalty = cegb_config->penalty_feature_lazy.at(feature_index);
+  if (!need_lazy_features)
+    return 0.0f;
+
+  double penalty = 0.0f;
+  auto res = cegb_config->penalty_feature_lazy.find(feature_index);
+  if (res != cegb_config->penalty_feature_lazy.end())
+    penalty = res->second;
+
   if (penalty <= 0.0f)
     return 0.0f;
 
@@ -159,20 +173,32 @@ double CEGBTreeLearner::CalculateOndemandCosts(int feature_index,
 }
 
 void CEGBTreeLearner::FindBestSplitForLeaf(int leaf) {
-  std::vector<double> gain;
+  std::vector<double> gain(num_features_);
 
-  gain.resize(num_features_);
   for (int i_feature = 0; i_feature < num_features_; i_feature++) {
     double i_gain = leaf_feature_splits[leaf][i_feature].gain;
-    double i_penalty_lazy = leaf_feature_penalty[leaf][i_feature];
+    double i_penalty_lazy = 0.0f;
     double i_penalty_coupled = 0.0f;
-    if (!coupled_features_used[i_feature])
-      i_penalty_coupled = cegb_config->penalty_feature_coupled.at(i_feature);
+
+    if (!coupled_features_used[i_feature]) {
+      auto res = cegb_config->penalty_feature_coupled.find(i_feature);
+      if (res != cegb_config->penalty_feature_coupled.end())
+        i_penalty_coupled = res->second;
+    }
+    if (need_lazy_features)
+      i_penalty_lazy = leaf_feature_penalty[leaf][i_feature];
 
     // FIXME:
     // a "good" split can have positive i_gain but negative i_gain - tradeoff *
     // i_penalty
-    // a split with negative i_gain is always bad though
+    // a split with negative i_gain is always bad though.
+    // pathological case would be a gain <= 0.0f split with no penalty and
+    // another split with gain just above 0.0f but a penalty just high enough to
+    // make it worse than the first split.
+    // we don't change SplitInfo.gain though so that SerialTreeLearner::Train
+    // should catch this as long we we make sure to not select this split here
+    // as
+    // the best for this leaf
     if (i_gain < 0.0f)
       gain[i_feature] = -INFINITY;
     else
@@ -197,7 +223,7 @@ void CEGBTreeLearner::FindBestSplitsForLeaves() {
     return;
 
   OMP_INIT_EX();
-  #pragma omp parallel for schedule(static)
+#pragma omp parallel for schedule(static)
   for (int leaf = 0; leaf < (int)best_split_per_leaf_.size(); ++leaf) {
     OMP_LOOP_EX_BEGIN();
     if (leaf == smaller_leaf_splits_->LeafIndex())

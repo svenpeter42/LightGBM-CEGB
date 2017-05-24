@@ -49,6 +49,14 @@ public:
     if (cegb_config->tradeoff == 0)
       independent_branches = true;
 
+    need_lazy_features = false;
+    for (auto &kv : cegb_config->penalty_feature_lazy) {
+      if (kv.second > 0.0f) {
+        need_lazy_features = true;
+        break;
+      }
+    }
+
     used_new_coupled_feature = true;
   }
 
@@ -66,6 +74,7 @@ private:
 
   bool independent_branches;
   bool used_new_coupled_feature;
+  bool need_lazy_features;
 
   /*! \brief stores best thresholds for all feature for all leaves */
   std::map<int, std::vector<SplitInfo>> leaf_feature_splits;
