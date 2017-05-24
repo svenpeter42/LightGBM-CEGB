@@ -58,6 +58,8 @@ public:
   */
   bool LoadModelFromString(const std::string &model_str) override;
 
+  void PredictCost(const double *features, double *output) const override;
+
 private:
   std::vector<bool> lazy_feature_used;
   std::vector<bool> coupled_feature_used;

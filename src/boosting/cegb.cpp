@@ -89,4 +89,8 @@ bool CEGB::LoadModelFromString(const std::string &model_str) {
   return GBDT::LoadModelFromString(model_str);
 }
 
+void CEGB::PredictCost(const double *features, double *output) const {
+  *output = 0;
+}
+
 } // namespace LightGBM

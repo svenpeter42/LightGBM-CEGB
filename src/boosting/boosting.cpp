@@ -75,4 +75,12 @@ Boosting* Boosting::CreateBoosting(const char* filename) {
   return ret.release();
 }
 
+
+
+void Boosting::PredictCost(
+    const double* features, double* output) const
+{
+  *output = 0;
+}
+
 }  // namespace LightGBM

@@ -140,6 +140,14 @@ public:
     const double* features, double* output) const = 0;
 
   /*!
+  * \brief Prediction for one record with prediction cost
+  * \param feature_values Feature value on this record
+  * \param output Prediction cost result for this record
+  */
+  virtual void PredictCost(
+    const double* features, double* output) const;
+
+  /*!
   * \brief Dump model to json format string
   * \param num_iteration Number of iterations that want to dump, -1 means dump all
   * \return Json format string of model
