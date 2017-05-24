@@ -1,57 +1,65 @@
 #ifndef LIGHTGBM_TREELEARNER_CEGB_TREE_LEARNER_H_
 #define LIGHTGBM_TREELEARNER_CEGB_TREE_LEARNER_H_
 
-#include <LightGBM/utils/random.h>
 #include <LightGBM/utils/array_args.h>
+#include <LightGBM/utils/random.h>
 
-#include <LightGBM/tree_learner.h>
 #include <LightGBM/dataset.h>
 #include <LightGBM/tree.h>
+#include <LightGBM/tree_learner.h>
 
-#include "feature_histogram.hpp"
-#include "split_info.hpp"
 #include "data_partition.hpp"
+#include "feature_histogram.hpp"
 #include "leaf_splits.hpp"
 #include "serial_tree_learner.h"
+#include "split_info.hpp"
 
-#include <cstdio>
-#include <vector>
-#include <random>
 #include <cmath>
+#include <cstdio>
 #include <memory>
-
+#include <random>
+#include <vector>
 
 namespace LightGBM {
 
-class CEGBTreeLearner: public SerialTreeLearner {
+class CEGBTreeLearner : public SerialTreeLearner {
 public:
-  CEGBTreeLearner(const TreeConfig* tree_config, const CEGBConfig* cegb_config_, std::vector<bool> &lazy_features_used_, std::vector<bool> &coupled_features_used_, std::vector<int> &new_features_used_) : SerialTreeLearner(tree_config), cegb_config(cegb_config_), lazy_features_used(lazy_features_used_), coupled_features_used(coupled_features_used_), new_features_used(new_features_used_)
-  {
-  	independent_branches = false;
+  CEGBTreeLearner(const TreeConfig *tree_config, const CEGBConfig *cegb_config_,
+                  std::vector<bool> &lazy_features_used_,
+                  std::vector<bool> &coupled_features_used_,
+                  std::vector<int> &new_features_used_)
+      : SerialTreeLearner(tree_config), cegb_config(cegb_config_),
+        lazy_features_used(lazy_features_used_),
+        coupled_features_used(coupled_features_used_),
+        new_features_used(new_features_used_) {
+    independent_branches = false;
 
-  	// GreedyMiser mode -> treat branches as independent even when using coupled feature penalties
-  	if (cegb_config->gm_mode == true)
-  		independent_branches = true;
+    // GreedyMiser mode -> treat branches as independent even when using coupled
+    // feature penalties
+    if (cegb_config->gm_mode == true)
+      independent_branches = true;
 
-  	// no coupled feature penalties -> all branches are independent since they share no training instances
-  	if (cegb_config->penalty_feature_coupled.size() == 0)
-  		independent_branches = true;
+    // no coupled feature penalties -> all branches are independent since they
+    // share no training instances
+    if (cegb_config->penalty_feature_coupled.size() == 0)
+      independent_branches = true;
 
-  	// no prediction cost penalty -> all branches are independent since they share no training instances
-  	if (cegb_config->tradeoff == 0)
-  		independent_branches = true;
+    // no prediction cost penalty -> all branches are independent since they
+    // share no training instances
+    if (cegb_config->tradeoff == 0)
+      independent_branches = true;
 
-  	used_new_coupled_feature = true;
+    used_new_coupled_feature = true;
   }
 
-  ~CEGBTreeLearner()  { }
+  ~CEGBTreeLearner() {}
 
   void FindBestSplitsForLeaves();
   void FindBestThresholds();
-  void Split(Tree* , int , int* , int* );
+  void Split(Tree *, int, int *, int *);
 
 private:
-  const CEGBConfig* cegb_config;
+  const CEGBConfig *cegb_config;
   std::vector<bool> &lazy_features_used;
   std::vector<bool> &coupled_features_used;
   std::vector<int> &new_features_used;
@@ -63,12 +71,10 @@ private:
   std::map<int, std::vector<SplitInfo>> leaf_feature_splits;
   std::map<int, std::vector<double>> leaf_feature_penalty;
 
-
-  double CalculateOndemandCosts(int , int );
+  double CalculateOndemandCosts(int, int);
   void FindBestSplitForLeaf(int);
 };
 
+} // namespace LightGBM
 
-}  // namespace LightGBM
-
-#endif   // LIGHTGBM_TREELEARNER_CEGB_TREE_LEARNER_H_
+#endif // LIGHTGBM_TREELEARNER_CEGB_TREE_LEARNER_H_
