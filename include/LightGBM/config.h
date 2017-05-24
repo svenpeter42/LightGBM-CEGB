@@ -228,7 +228,7 @@ struct CEGBConfig: public ConfigBase {
 public:
   double tradeoff;
   double penalty_split;
-  bool gm_mode;
+  bool independent_branches;
 
   std::map<int, double> penalty_feature_lazy;
   std::map<int, double> penalty_feature_coupled;

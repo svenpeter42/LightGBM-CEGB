@@ -58,12 +58,12 @@ public:
   */
   bool TrainOneIter(const score_t *gradient, const score_t *hessian,
                     bool is_eval) override {
-    if (gbdt_config_->cegb_config.gm_mode)
+    if (gbdt_config_->cegb_config.independent_branches)
       iter_features_used.clear();
 
     bool res = GBDT::TrainOneIter(gradient, hessian, is_eval);
 
-    if (gbdt_config_->cegb_config.gm_mode) {
+    if (gbdt_config_->cegb_config.independent_branches) {
       for (int i_feature : iter_features_used)
         coupled_feature_used[i_feature] = true;
     }

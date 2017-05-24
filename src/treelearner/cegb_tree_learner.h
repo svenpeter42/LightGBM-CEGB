@@ -36,7 +36,7 @@ public:
 
     // GreedyMiser mode -> treat branches as independent even when using coupled
     // feature penalties
-    if (cegb_config->gm_mode == true)
+    if (cegb_config->independent_branches == true)
       independent_branches = true;
 
     // no coupled feature penalties -> all branches are independent since they

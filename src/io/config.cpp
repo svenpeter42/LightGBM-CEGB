@@ -343,7 +343,7 @@ void CEGBConfig::Set(const std::unordered_map<std::string, std::string>& params)
   CHECK(tradeoff >= 0.0f);
   GetDouble(params, "cegb_penalty_split", &penalty_split);
   CHECK(penalty_split >= 0.0f);
-  GetBool(params, "cegb_gm_mode", &gm_mode);
+  GetBool(params, "cegb_independent_branches", &independent_branches);
 
   std::string value;
   if (GetString(params, "cegb_penalty_feature_lazy", &value))
