@@ -376,7 +376,11 @@ void CEGBConfig::GetPenaltyFeature(std::string &value, std::map<int, double> &ta
     if (!Common::AtofAndCheck(tmp[1].c_str(), &i_penalty.second))
       Log::Fatal("Feature penalty should be of type double, got \"%s\"", tmp[1].c_str());
 
-    target.insert(i_penalty);
+    CHECK(i_penalty.first >= 0);
+    CHECK(i_penalty.second >= 0.0f);
+
+    if (i_penalty.second > 0.0f)
+      target.insert(i_penalty);
   }
 }
 

@@ -87,7 +87,7 @@ private:
       Log::Fatal("CEGB currently only supports serial tree learner, '%s' is unsupported.", config->tree_learner_type);
     if (tree_learner_ != nullptr)
       return;
-    tree_learner_ = std::unique_ptr<TreeLearner>((TreeLearner *)new CEGBTreeLearner(&config->tree_config, &config->cegb_config, lazy_feature_used, coupled_feature_used));
+    tree_learner_ = std::unique_ptr<TreeLearner>((TreeLearner *)new CEGBTreeLearner(&config->tree_config, &config->cegb_config, lazy_feature_used, coupled_feature_used, iter_features_used));
   }
 };
 
