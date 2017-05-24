@@ -60,7 +60,8 @@ public:
 
   void PredictCost(const double *features, double *output) const override;
   void PredictMulti(const double *features, double *output_raw, double *output,
-                    double *leaf, double *cost) const override;
+                    double *leaf, double *cost,
+                    bool all_iterations) const override;
 
 private:
   std::vector<bool> lazy_feature_used;

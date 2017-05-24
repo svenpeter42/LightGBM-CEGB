@@ -155,10 +155,11 @@ public:
   * \param output Prediction result for this record, sigmoid transformation will be used if needed, can be nullptr
   * \param leaf Leaf index for this record, can be nullptr
   * \param cost Prediction cost for this record, can be nullptr
+  * \param all_iterations return results for all iterations individually
   */
   virtual void PredictMulti(
     const double* features, double* output_raw, double* output,
-    double* leaf, double *cost) const;
+    double* leaf, double *cost, bool all_iterations) const;
 
   /*!
   * \brief Dump model to json format string

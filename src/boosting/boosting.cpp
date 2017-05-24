@@ -86,7 +86,7 @@ void Boosting::PredictCost(
 
 void Boosting::PredictMulti(
     const double* features, double* output_raw, double* output,
-    double* leaf, double *cost) const
+    double* leaf, double *cost, bool all_iterations) const
 {
   if (output_raw)
     PredictRaw(features, output_raw);

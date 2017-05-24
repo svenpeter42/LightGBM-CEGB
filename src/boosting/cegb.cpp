@@ -96,7 +96,8 @@ void CEGB::PredictCost(const double *features, double *output) const {
 }
 
 void CEGB::PredictMulti(const double *features, double *output_raw,
-                        double *output, double *leaf, double *cost) const {
+                        double *output, double *leaf, double *cost,
+                        bool all_iterations) const {
   if (output_raw)
     PredictRaw(features, output_raw);
   if (output)
