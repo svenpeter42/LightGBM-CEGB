@@ -147,6 +147,19 @@ public:
   virtual void PredictCost(
     const double* features, double* output) const;
 
+
+  /*!
+  * \brief Compute results of Boosting::PredictRaw, Boosting::Predict, Boosting::PredictLeafIndex, Boosting::PredictCost for one record
+  * \param feature_values Feature value on this record
+  * \param output_raw Prediction result for this record, can be nullptr
+  * \param output Prediction result for this record, sigmoid transformation will be used if needed, can be nullptr
+  * \param leaf Leaf index for this record, can be nullptr
+  * \param cost Prediction cost for this record, can be nullptr
+  */
+  virtual void PredictMulti(
+    const double* features, double* output_raw, double* output,
+    double* leaf, double *cost) const;
+
   /*!
   * \brief Dump model to json format string
   * \param num_iteration Number of iterations that want to dump, -1 means dump all

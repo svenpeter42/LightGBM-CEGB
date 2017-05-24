@@ -76,8 +76,10 @@ void CEGB::InitTreeLearner(const BoostingConfig *config) {
     Log::Fatal("CEGB currently only supports serial tree learner, '%s' is "
                "unsupported.",
                config->tree_learner_type);
+
   if (tree_learner_ != nullptr)
     return;
+
   tree_learner_ =
       std::unique_ptr<TreeLearner>((TreeLearner *)new CEGBTreeLearner(
           &config->tree_config, &config->cegb_config, lazy_feature_used,
@@ -91,6 +93,18 @@ bool CEGB::LoadModelFromString(const std::string &model_str) {
 
 void CEGB::PredictCost(const double *features, double *output) const {
   *output = 0;
+}
+
+void CEGB::PredictMulti(const double *features, double *output_raw,
+                        double *output, double *leaf, double *cost) const {
+  if (output_raw)
+    PredictRaw(features, output_raw);
+  if (output)
+    Predict(features, output);
+  if (leaf)
+    PredictLeafIndex(features, leaf);
+  if (cost)
+    PredictCost(features, cost);
 }
 
 } // namespace LightGBM

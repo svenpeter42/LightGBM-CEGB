@@ -83,4 +83,19 @@ void Boosting::PredictCost(
   *output = 0;
 }
 
+
+void Boosting::PredictMulti(
+    const double* features, double* output_raw, double* output,
+    double* leaf, double *cost) const
+{
+  if (output_raw)
+    PredictRaw(features, output_raw);
+  if (output)
+    Predict(features, output);
+  if (leaf)
+    PredictLeafIndex(features, leaf);
+  if (cost)
+    PredictCost(features, cost);
+}
+
 }  // namespace LightGBM
