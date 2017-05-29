@@ -43,13 +43,13 @@ Boosting* Boosting::CreateBoosting(const std::string& type, const char* filename
   } else {
     std::unique_ptr<Boosting> ret;
     auto type_in_file = GetBoostingTypeFromModelFile(filename);
-    if (type_in_file == std::string("cegb_tree") && type == std::string("cegb")) {
-      ret.reset(new CEGB());
-    } else {
-      Log::Fatal("type_in_file and type mismatch: %s and %s", type_in_file.c_str(), type.c_str());
-    }
-
-    if (type_in_file == std::string("tree")) {
+    if (type_in_file == std::string("cegb_tree")) {
+      if (type == std::string("cegb")) {
+        ret.reset(new CEGB());
+      } else {
+        Log::Fatal("type_in_file and type mismatch: %s and %s", type_in_file.c_str(), type.c_str());
+      }
+    } else if (type_in_file == std::string("tree")) {
       if (type == std::string("gbdt")) {
         ret.reset(new GBDT());
       } else if (type == std::string("dart")) {
