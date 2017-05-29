@@ -169,6 +169,8 @@ public:
     }
   }
 
+  inline std::vector<int> GetPathToLeaf(int leaf) const;
+
   static std::vector<bool(*)(uint32_t, uint32_t)> inner_decision_funs;
   static std::vector<bool(*)(double, double)> decision_funs;
 
@@ -273,6 +275,18 @@ inline int Tree::GetLeaf(const double* feature_values) const {
     }
   }
   return ~node;
+}
+
+inline std::vector<int> Tree::GetPathToLeaf(int leaf) const {
+  std::vector<int> path;
+
+  int node = leaf_parent_[leaf];
+  while (node >= 0) {
+    path.push_back(node);
+    node = leaf_parent_[node];
+  }
+
+  return path;
 }
 
 }  // namespace LightGBM

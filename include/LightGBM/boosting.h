@@ -149,17 +149,16 @@ public:
 
 
   /*!
-  * \brief Compute results of Boosting::PredictRaw, Boosting::Predict, Boosting::PredictLeafIndex, Boosting::PredictCost for one record
+  * \brief Compute raw prediction, prediction, leaf index and cost for all iterations and on records
   * \param feature_values Feature value on this record
   * \param output_raw Prediction result for this record, can be nullptr
   * \param output Prediction result for this record, sigmoid transformation will be used if needed, can be nullptr
   * \param leaf Leaf index for this record, can be nullptr
   * \param cost Prediction cost for this record, can be nullptr
-  * \param all_iterations return results for all iterations individually
   */
   virtual void PredictMulti(
     const double* features, double* output_raw, double* output,
-    double* leaf, double *cost, bool all_iterations) const;
+    double* leaf, double *cost) const;
 
   /*!
   * \brief Dump model to json format string

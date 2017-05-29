@@ -43,6 +43,12 @@ Boosting* Boosting::CreateBoosting(const std::string& type, const char* filename
   } else {
     std::unique_ptr<Boosting> ret;
     auto type_in_file = GetBoostingTypeFromModelFile(filename);
+    if (type_in_file == std::string("cegb_tree") && type == std::string("cegb")) {
+      ret.reset(new CEGB());
+    } else {
+      Log::Fatal("type_in_file and type mismatch: %s and %s", type_in_file.c_str(), type.c_str());
+    }
+
     if (type_in_file == std::string("tree")) {
       if (type == std::string("gbdt")) {
         ret.reset(new GBDT());
@@ -68,6 +74,8 @@ Boosting* Boosting::CreateBoosting(const char* filename) {
   std::unique_ptr<Boosting> ret;
   if (type == std::string("tree")) {
     ret.reset(new GBDT());
+  } else if (type == std::string("cegb_tree")) {
+    ret.reset(new CEGB());
   } else {
     Log::Fatal("unknown submodel type in model file %s", filename);
   }
@@ -80,22 +88,15 @@ Boosting* Boosting::CreateBoosting(const char* filename) {
 void Boosting::PredictCost(
     const double* features, double* output) const
 {
-  *output = 0;
+  Log::Fatal("Boosting::PredictCost has not been implemented yet.");
 }
 
 
 void Boosting::PredictMulti(
     const double* features, double* output_raw, double* output,
-    double* leaf, double *cost, bool all_iterations) const
+    double* leaf, double *cost) const
 {
-  if (output_raw)
-    PredictRaw(features, output_raw);
-  if (output)
-    Predict(features, output);
-  if (leaf)
-    PredictLeafIndex(features, leaf);
-  if (cost)
-    PredictCost(features, cost);
+  Log::Fatal("Boosting::PredictMulti has not been implemented yet.");
 }
 
 }  // namespace LightGBM

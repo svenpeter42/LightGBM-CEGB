@@ -10,6 +10,7 @@
 #include <ctime>
 
 #include <chrono>
+#include <set>
 #include <sstream>
 #include <string>
 #include <utility>
@@ -91,21 +92,102 @@ bool CEGB::LoadModelFromString(const std::string &model_str) {
   return GBDT::LoadModelFromString(model_str);
 }
 
+static double find_cost_or_zero(std::map<int, double> &m, int feature) {
+  auto res = m.find(feature);
+  if (res == m.end())
+    return 0;
+  else
+    return res->second;
+}
+
 void CEGB::PredictCost(const double *features, double *output) const {
-  *output = 0;
+  std::set<int> features_used;
+  double i_cost = 0;
+
+  // TODO: could use multithreading here:
+  // splits trees to num_iteration_for_pred_/n_threads and keep track of used
+  // features in each thread, then switch to single threading and
+  // merge to big set to compute final cost
+  for (int i = 0; i < num_iteration_for_pred_; ++i) {
+    auto &model = models_[i];
+
+    int i_leaf = model->PredictLeafIndex(features);
+    std::vector<int> path = model->GetPathToLeaf(i_leaf);
+
+    // feature penalty
+    for (int i_node : path) {
+      int i_feature = model->split_feature(i_node);
+
+      if (features_used.find(i_feature) == features_used.end())
+        continue;
+
+      i_cost += find_cost_or_zero(
+          gbdt_config_->cegb_config.penalty_feature_lazy, i_feature);
+      i_cost += find_cost_or_zero(
+          gbdt_config_->cegb_config.penalty_feature_coupled, i_feature);
+      features_used.insert(i_feature);
+    }
+
+    // split penalty
+    i_cost += gbdt_config_->cegb_config.penalty_split * path.size();
+  }
+
+  *output = i_cost;
 }
 
 void CEGB::PredictMulti(const double *features, double *output_raw,
-                        double *output, double *leaf, double *cost,
-                        bool all_iterations) const {
-  if (output_raw)
-    PredictRaw(features, output_raw);
-  if (output)
-    Predict(features, output);
-  if (leaf)
-    PredictLeafIndex(features, leaf);
-  if (cost)
-    PredictCost(features, cost);
+                        double *output, double *leaf, double *cost) const {
+
+  std::set<int> features_used;
+  double i_cost = 0;
+  double i_pred = 0;
+
+  if (num_tree_per_iteration_ > 1)
+    Log::Fatal(
+        "CEGB::PredictMulti not implemented for num_tree_per_iteration_ > 1.");
+
+  for (int i = 0; i < num_iteration_for_pred_; ++i) {
+    auto &model = models_[i];
+
+    int i_leaf = model->PredictLeafIndex(features);
+    std::vector<int> path = model->GetPathToLeaf(i_leaf);
+
+    // feature penalty
+    for (int i_node : path) {
+      int i_feature = model->split_feature(i_node);
+
+      if (features_used.find(i_feature) == features_used.end())
+        continue;
+
+      i_cost += find_cost_or_zero(
+          gbdt_config_->cegb_config.penalty_feature_lazy, i_feature);
+      i_cost += find_cost_or_zero(
+          gbdt_config_->cegb_config.penalty_feature_coupled, i_feature);
+      features_used.insert(i_feature);
+    }
+
+    // split penalty
+    i_cost += gbdt_config_->cegb_config.penalty_split * path.size();
+
+    // prediction
+    i_pred += model->LeafOutput(i_leaf);
+
+    if (leaf != nullptr)
+      leaf[i] = i_leaf;
+
+    if (cost != nullptr)
+      cost[i] = i_cost;
+
+    if (output_raw != nullptr)
+      output_raw[i] = i_pred;
+
+    if (output != nullptr) {
+      output[i] = i_pred;
+
+      if (objective_function_ != nullptr)
+        objective_function_->ConvertOutput(output, output);
+    }
+  }
 }
 
 } // namespace LightGBM

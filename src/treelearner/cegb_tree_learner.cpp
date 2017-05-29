@@ -208,6 +208,7 @@ void CEGBTreeLearner::FindBestSplitForLeaf(int leaf) {
 
   auto best_idx = ArrayArgs<double>::ArgMax(gain);
   best_split_per_leaf_[leaf] = leaf_feature_splits[leaf][best_idx];
+  best_split_per_leaf_[leaf].gain = gain[best_idx];
 }
 
 void CEGBTreeLearner::FindBestSplitsForLeaves() {
