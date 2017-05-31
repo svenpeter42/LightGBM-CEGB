@@ -57,15 +57,23 @@ bool CEGB::TrainOneIter(const score_t *gradient, const score_t *hessian,
       coupled_feature_used[i_feature] = true;
   }
 
+  Log::Debug("Trained another tree.");
   return res;
 }
 
 void CEGB::ResetFeatureTracking() {
   lazy_feature_used.clear();
-  lazy_feature_used.resize(train_data_->num_total_features() *
-                           train_data_->num_data());
+
   coupled_feature_used.clear();
-  coupled_feature_used.resize(train_data_->num_total_features());
+
+  if (train_data_ != nullptr) {
+    lazy_feature_used.resize(train_data_->num_total_features() *
+                             train_data_->num_data());
+    coupled_feature_used.resize(train_data_->num_total_features());
+
+    std::cout << "RESET training w/" << train_data_->num_data() << " and "
+              << train_data_->num_total_features() << " \n";
+  }
 }
 
 void CEGB::InitTreeLearner(const BoostingConfig *config) {

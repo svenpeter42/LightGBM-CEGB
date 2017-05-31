@@ -6,6 +6,16 @@
 #include <vector>
 namespace LightGBM {
 
+template <typename K, typename V>
+static inline void insert_or_assign(std::map<K, V> &m, K k, V v) {
+  auto result = m.find(k);
+
+  if (result != m.end())
+    m.erase(result);
+
+  m.insert(std::make_pair(k, v));
+}
+
 // mostly taken from SerialTreeLearner; only changed to store SplitInfo for all
 // features
 void CEGBTreeLearner::FindBestThresholds() {
@@ -123,11 +133,13 @@ void CEGBTreeLearner::FindBestThresholds() {
   OMP_THROW_EX();
 
   leaf = smaller_leaf_splits_->LeafIndex();
-  leaf_feature_splits[leaf] = smaller_all;
+  insert_or_assign(leaf_feature_splits, leaf, smaller_all);
+  // leaf_feature_splits[leaf] = smaller_all;
 
   if (larger_leaf_splits_ != nullptr && larger_leaf_splits_->LeafIndex() >= 0) {
     leaf = larger_leaf_splits_->LeafIndex();
-    leaf_feature_splits[leaf] = larger_all;
+    insert_or_assign(leaf_feature_splits, leaf, larger_all);
+    // leaf_feature_splits[leaf] = larger_all;
   }
 
 // auto smaller_best_idx = ArrayArgs<SplitInfo>::ArgMax(smaller_best);

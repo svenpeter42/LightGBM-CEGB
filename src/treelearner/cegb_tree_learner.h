@@ -62,9 +62,10 @@ public:
 
   ~CEGBTreeLearner() {}
 
-  void FindBestSplitsForLeaves();
-  void FindBestThresholds();
-  void Split(Tree *, int, int *, int *);
+protected:
+  void FindBestSplitsForLeaves() override;
+  void FindBestThresholds() override;
+  void Split(Tree *, int, int *, int *) override;
 
 private:
   const CEGBConfig *cegb_config;
