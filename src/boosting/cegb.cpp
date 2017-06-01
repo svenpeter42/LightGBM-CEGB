@@ -107,41 +107,6 @@ static double find_cost_or_zero(std::map<int, double> &m, int feature) {
     return res->second;
 }
 
-void CEGB::PredictCost(const double *features, double *output) const {
-  std::set<int> features_used;
-  double i_cost = 0;
-
-  // TODO: could use multithreading here:
-  // splits trees to num_iteration_for_pred_/n_threads and keep track of used
-  // features in each thread, then switch to single threading and
-  // merge to big set to compute final cost
-  for (int i = 0; i < num_iteration_for_pred_; ++i) {
-    auto &model = models_[i];
-
-    int i_leaf = model->PredictLeafIndex(features);
-    std::vector<int> path = model->GetPathToLeaf(i_leaf);
-
-    // feature penalty
-    for (int i_node : path) {
-      int i_feature = model->split_feature(i_node);
-
-      if (features_used.find(i_feature) == features_used.end())
-        continue;
-
-      i_cost += find_cost_or_zero(
-          gbdt_config_->cegb_config.penalty_feature_lazy, i_feature);
-      i_cost += find_cost_or_zero(
-          gbdt_config_->cegb_config.penalty_feature_coupled, i_feature);
-      features_used.insert(i_feature);
-    }
-
-    // split penalty
-    i_cost += gbdt_config_->cegb_config.penalty_split * path.size();
-  }
-
-  *output = i_cost;
-}
-
 void CEGB::PredictMulti(const double *features, double *output_raw,
                         double *output, double *leaf, double *cost) const {
 

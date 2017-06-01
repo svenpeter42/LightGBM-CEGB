@@ -140,15 +140,6 @@ public:
     const double* features, double* output) const = 0;
 
   /*!
-  * \brief Prediction for one record with prediction cost
-  * \param feature_values Feature value on this record
-  * \param output Prediction cost result for this record
-  */
-  virtual void PredictCost(
-    const double* features, double* output) const;
-
-
-  /*!
   * \brief Compute raw prediction, prediction, leaf index and cost for all iterations and on records
   * \param feature_values Feature value on this record
   * \param output_raw Prediction result for this record, can be nullptr

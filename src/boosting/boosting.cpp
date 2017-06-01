@@ -84,14 +84,6 @@ Boosting* Boosting::CreateBoosting(const char* filename) {
 }
 
 
-
-void Boosting::PredictCost(
-    const double* features, double* output) const
-{
-  Log::Fatal("Boosting::PredictCost has not been implemented yet.");
-}
-
-
 void Boosting::PredictMulti(
     const double* features, double* output_raw, double* output,
     double* leaf, double *cost) const
