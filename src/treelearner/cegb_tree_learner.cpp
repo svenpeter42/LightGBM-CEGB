@@ -231,9 +231,8 @@ void CEGBTreeLearner::Split(Tree *tree, int best_leaf, int *left_leaf,
   data_size_t cnt_leaf_data = 0;
   auto tmp_idx = data_partition_->GetIndexOnLeaf(best_leaf, &cnt_leaf_data);
   for (data_size_t i_input = 0; i_input < cnt_leaf_data; ++i_input) {
-    off_t idx =
-        train_data_->num_data() * inner_feature_index + tmp_idx[i_input];
-    lazy_features_used[idx] = true;
+    lazy_features_used[train_data_->num_data() * inner_feature_index +
+                       tmp_idx[i_input]] = true;
   }
 
   if (independent_branches == true) {
