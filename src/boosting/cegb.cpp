@@ -57,13 +57,12 @@ bool CEGB::TrainOneIter(const score_t *gradient, const score_t *hessian,
       coupled_feature_used[i_feature] = true;
   }
 
-  Log::Debug("Trained another tree.");
+  Log::Debug("CEGB: Training finished for iter %d.", iter_);
   return res;
 }
 
 void CEGB::ResetFeatureTracking() {
   lazy_feature_used.clear();
-
   coupled_feature_used.clear();
 
   if (train_data_ != nullptr) {
