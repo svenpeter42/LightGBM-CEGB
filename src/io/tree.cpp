@@ -309,6 +309,227 @@ void Tree::AddPredictionToScore(const Dataset* data,
   }
 }
 
+
+
+
+
+void Tree::AddPredictionToScoreGetFeatures(const Dataset* data, data_size_t num_data, double* score, std::vector<bool> &features_used, data_size_t num_data_fused) const {
+  if (num_leaves_ <= 1) { return; }
+  if (has_categorical_) {
+    if (data->num_features() > num_leaves_ - 1) {
+      Threading::For<data_size_t>(0, num_data,
+        [this, &data, score, &features_used, num_data_fused](int, data_size_t start, data_size_t end) {
+        std::vector<std::unique_ptr<BinIterator>> iter(num_leaves_ - 1);
+        for (int i = 0; i < num_leaves_ - 1; ++i) {
+          const int fidx = split_feature_inner_[i];
+          iter[i].reset(data->FeatureIterator(fidx));
+          iter[i]->Reset(start);
+        }
+        for (data_size_t i = start; i < end; ++i) {
+          int node = 0;
+          while (node >= 0) {
+            features_used[num_data_fused * split_feature_[node] + i] = true;
+            uint32_t fval = DefaultValueForZero(iter[node]->Get(i), zero_bin_[node], default_bin_for_zero_[node]);
+            if (inner_decision_funs[decision_type_[node]](
+              fval,
+              threshold_in_bin_[node])) {
+              node = left_child_[node];
+            } else {
+              node = right_child_[node];
+            }
+          }
+          score[i] += static_cast<double>(leaf_value_[~node]);
+          features_used[i] = ~node;
+        }
+      });
+    } else {
+      Threading::For<data_size_t>(0, num_data,
+        [this, &data, score, &features_used, num_data_fused](int, data_size_t start, data_size_t end) {
+        std::vector<std::unique_ptr<BinIterator>> iter(data->num_features());
+        for (int i = 0; i < data->num_features(); ++i) {
+          iter[i].reset(data->FeatureIterator(i));
+          iter[i]->Reset(start);
+        }
+        for (data_size_t i = start; i < end; ++i) {
+          int node = 0;
+          while (node >= 0) {
+            uint32_t fval = DefaultValueForZero(iter[split_feature_inner_[node]]->Get(i), zero_bin_[node], default_bin_for_zero_[node]);
+            features_used[num_data_fused * split_feature_[node] + i] = true;
+            if (inner_decision_funs[decision_type_[node]](
+              fval,
+              threshold_in_bin_[node])) {
+              node = left_child_[node];
+            } else {
+              node = right_child_[node];
+            }
+          }
+          score[i] += static_cast<double>(leaf_value_[~node]);
+          features_used[i] = ~node;
+        }
+      });
+    }
+  } else {
+    if (data->num_features() > num_leaves_ - 1) {
+      Threading::For<data_size_t>(0, num_data,
+        [this, &data, score, &features_used, num_data_fused](int, data_size_t start, data_size_t end) {
+        std::vector<std::unique_ptr<BinIterator>> iter(num_leaves_ - 1);
+        for (int i = 0; i < num_leaves_ - 1; ++i) {
+          const int fidx = split_feature_inner_[i];
+          iter[i].reset(data->FeatureIterator(fidx));
+          iter[i]->Reset(start);
+        }
+        for (data_size_t i = start; i < end; ++i) {
+          int node = 0;
+          while (node >= 0) {
+            uint32_t fval = DefaultValueForZero(iter[node]->Get(i), zero_bin_[node], default_bin_for_zero_[node]);
+            features_used[num_data_fused * split_feature_[node] + i] = true;
+            if (fval <= threshold_in_bin_[node]) {
+              node = left_child_[node];
+            } else {
+              node = right_child_[node];
+            }
+          }
+          score[i] += static_cast<double>(leaf_value_[~node]);
+          features_used[i] = ~node;
+        }
+      });
+    } else {
+      Threading::For<data_size_t>(0, num_data,
+        [this, &data, score, &features_used, num_data_fused](int, data_size_t start, data_size_t end) {
+        std::vector<std::unique_ptr<BinIterator>> iter(data->num_features());
+        for (int i = 0; i < data->num_features(); ++i) {
+          iter[i].reset(data->FeatureIterator(i));
+          iter[i]->Reset(start);
+        }
+        for (data_size_t i = start; i < end; ++i) {
+          int node = 0;
+          while (node >= 0) {
+            uint32_t fval = DefaultValueForZero(iter[split_feature_inner_[node]]->Get(i), zero_bin_[node], default_bin_for_zero_[node]);
+            features_used[num_data_fused * split_feature_[node] + i] = true;
+            if (fval <= threshold_in_bin_[node]) {
+              node = left_child_[node];
+            } else {
+              node = right_child_[node];
+            }
+          }
+          score[i] += static_cast<double>(leaf_value_[~node]);
+          features_used[i] = ~node;
+        }
+      });
+    }
+  }
+}
+
+
+void Tree::AddPredictionToScoreGetFeatures(const Dataset* data,
+  const data_size_t* used_data_indices,
+  data_size_t num_data, double* score, std::vector<bool> &features_used, data_size_t num_data_fused) const {
+  if (num_leaves_ <= 1) { return; }
+  if (has_categorical_) {
+    if (data->num_features() > num_leaves_ - 1) {
+      Threading::For<data_size_t>(0, num_data,
+        [this, data, used_data_indices, score, &features_used, num_data_fused](int, data_size_t start, data_size_t end) {
+        std::vector<std::unique_ptr<BinIterator>> iter(num_leaves_ - 1);
+        for (int i = 0; i < num_leaves_ - 1; ++i) {
+          const int fidx = split_feature_inner_[i];
+          iter[i].reset(data->FeatureIterator(fidx));
+          iter[i]->Reset(used_data_indices[start]);
+        }
+        for (data_size_t i = start; i < end; ++i) {
+          int node = 0;
+          const data_size_t idx = used_data_indices[i];
+          while (node >= 0) {
+            uint32_t fval = DefaultValueForZero(iter[node]->Get(idx), zero_bin_[node], default_bin_for_zero_[node]);
+            if (inner_decision_funs[decision_type_[node]](
+              fval,
+              threshold_in_bin_[node])) {
+              node = left_child_[node];
+            } else {
+              node = right_child_[node];
+            }
+          }
+          score[idx] += static_cast<double>(leaf_value_[~node]);
+          features_used[i] = ~node;
+        }
+      });
+    } else {
+      Threading::For<data_size_t>(0, num_data,
+        [this, data, used_data_indices, score, &features_used, num_data_fused](int, data_size_t start, data_size_t end) {
+        std::vector<std::unique_ptr<BinIterator>> iter(data->num_features());
+        for (int i = 0; i < data->num_features(); ++i) {
+          iter[i].reset(data->FeatureIterator(i));
+          iter[i]->Reset(used_data_indices[start]);
+        }
+        for (data_size_t i = start; i < end; ++i) {
+          const data_size_t idx = used_data_indices[i];
+          int node = 0;
+          while (node >= 0) {
+            uint32_t fval = DefaultValueForZero(iter[split_feature_inner_[node]]->Get(idx), zero_bin_[node], default_bin_for_zero_[node]);
+            if (inner_decision_funs[decision_type_[node]](
+              fval,
+              threshold_in_bin_[node])) {
+              node = left_child_[node];
+            } else {
+              node = right_child_[node];
+            }
+          }
+          score[idx] += static_cast<double>(leaf_value_[~node]);
+          features_used[i] = ~node;
+        }
+      });
+    }
+  } else {
+    if (data->num_features() > num_leaves_ - 1) {
+      Threading::For<data_size_t>(0, num_data,
+        [this, data, used_data_indices, score, &features_used, num_data_fused](int, data_size_t start, data_size_t end) {
+        std::vector<std::unique_ptr<BinIterator>> iter(num_leaves_ - 1);
+        for (int i = 0; i < num_leaves_ - 1; ++i) {
+          const int fidx = split_feature_inner_[i];
+          iter[i].reset(data->FeatureIterator(fidx));
+          iter[i]->Reset(used_data_indices[start]);
+        }
+        for (data_size_t i = start; i < end; ++i) {
+          int node = 0;
+          const data_size_t idx = used_data_indices[i];
+          while (node >= 0) {
+            uint32_t fval = DefaultValueForZero(iter[node]->Get(idx), zero_bin_[node], default_bin_for_zero_[node]);
+            if (fval <= threshold_in_bin_[node]) {
+              node = left_child_[node];
+            } else {
+              node = right_child_[node];
+            }
+          }
+          score[idx] += static_cast<double>(leaf_value_[~node]);
+          features_used[i] = ~node;
+        }
+      });
+    } else {
+      Threading::For<data_size_t>(0, num_data,
+        [this, data, used_data_indices, score, &features_used, num_data_fused](int, data_size_t start, data_size_t end) {
+        std::vector<std::unique_ptr<BinIterator>> iter(data->num_features());
+        for (int i = 0; i < data->num_features(); ++i) {
+          iter[i].reset(data->FeatureIterator(i));
+          iter[i]->Reset(used_data_indices[start]);
+        }
+        for (data_size_t i = start; i < end; ++i) {
+          const data_size_t idx = used_data_indices[i];
+          int node = 0;
+          while (node >= 0) {
+            uint32_t fval = DefaultValueForZero(iter[split_feature_inner_[node]]->Get(idx), zero_bin_[node], default_bin_for_zero_[node]);
+            if (fval <= threshold_in_bin_[node]) {
+              node = left_child_[node];
+            } else {
+              node = right_child_[node];
+            }
+          }
+          score[idx] += static_cast<double>(leaf_value_[~node]);
+          features_used[i] = ~node;
+        }
+      });
+    }
+  }
+}
+
 std::string Tree::ToString() {
   std::stringstream str_buf;
   str_buf << "num_leaves=" << num_leaves_ << std::endl;

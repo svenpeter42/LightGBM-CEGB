@@ -24,7 +24,7 @@ public:
   /*!
   * \brief Constructor
   */
-  CEGB() : GBDT(), allow_train(true) {}
+  CEGB() : GBDT(), allow_train(true), cost(0.0f) {}
   /*!
   * \brief Destructor
   */
@@ -63,6 +63,9 @@ public:
 
   virtual const char *SubModelName() const override { return "cegb_tree"; }
 
+  void UpdateScore(const Tree *tree, const int cur_tree_id) override;
+  void UpdateScoreOutOfBag(const Tree *tree, const int cur_tree_id) override;
+
 private:
   std::vector<bool> lazy_feature_used;
   std::vector<bool> coupled_feature_used;
@@ -70,8 +73,13 @@ private:
 
   bool allow_train;
 
+  double cost;
+
   void ResetFeatureTracking();
   void InitTreeLearner(const BoostingConfig *);
+
+  void MyAddPredictionToScore(const Tree *tree, const data_size_t *data_indices,
+                              data_size_t data_cnt, int cur_tree_id);
 };
 
 } // namespace LightGBM

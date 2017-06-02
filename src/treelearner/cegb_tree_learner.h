@@ -27,11 +27,17 @@ public:
   CEGBTreeLearner(const TreeConfig *tree_config, const CEGBConfig *cegb_config_,
                   std::vector<bool> &lazy_features_used_,
                   std::vector<bool> &coupled_features_used_,
-                  std::vector<int> &new_features_used_)
+                  std::vector<int> &new_features_used_,
+                  std::vector<data_size_t> &bag_data_indices_
+
+                  )
       : SerialTreeLearner(tree_config), cegb_config(cegb_config_),
         lazy_features_used(lazy_features_used_),
         coupled_features_used(coupled_features_used_),
-        new_features_used(new_features_used_) {
+        new_features_used(new_features_used_),
+        bag_data_indices(bag_data_indices_)
+
+  {
     independent_branches = false;
 
     // GreedyMiser mode -> treat branches as independent even when using coupled
@@ -77,12 +83,16 @@ private:
   bool used_new_coupled_feature;
   bool need_lazy_features;
 
+  // bagging
+  std::vector<data_size_t> &bag_data_indices;
+
   /*! \brief stores best thresholds for all feature for all leaves */
   std::map<int, std::vector<SplitInfo>> leaf_feature_splits;
   std::map<int, std::vector<double>> leaf_feature_penalty;
 
   double CalculateOndemandCosts(int, int);
   void FindBestSplitForLeaf(int);
+  int GetRealDataIndex(int);
 };
 
 } // namespace LightGBM

@@ -83,6 +83,15 @@ public:
                             const data_size_t* used_data_indices,
                             data_size_t num_data, double* score) const;
 
+
+  void AddPredictionToScoreGetFeatures(const Dataset* data,
+                            data_size_t num_data,
+                            double* score, std::vector<bool> &features_used, data_size_t num_data_fused) const;
+  void AddPredictionToScoreGetFeatures(const Dataset* data,
+                            const data_size_t* used_data_indices,
+                            data_size_t num_data, double* score,
+                            std::vector<bool> &features_usedd, data_size_t num_data_fused) const;
+
   /*!
   * \brief Prediction on one record
   * \param feature_values Feature value of this record

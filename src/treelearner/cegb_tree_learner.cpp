@@ -16,6 +16,13 @@ static inline void insert_or_assign(std::map<K, V> &m, K k, V v) {
   m.insert(std::make_pair(k, v));
 }
 
+inline int CEGBTreeLearner::GetRealDataIndex(int idx) {
+  if (bag_data_indices.size() == 0)
+    return idx;
+
+  return bag_data_indices[idx];
+}
+
 // mostly taken from SerialTreeLearner; only changed to store SplitInfo for all
 // features
 void CEGBTreeLearner::FindBestThresholds() {
@@ -147,8 +154,8 @@ double CEGBTreeLearner::CalculateOndemandCosts(int feature_index,
   auto tmp_idx = data_partition_->GetIndexOnLeaf(leaf_index, &cnt_leaf_data);
 
   for (data_size_t i_input = 0; i_input < cnt_leaf_data; ++i_input) {
-    if (lazy_features_used[train_data_->num_data() * feature_index +
-                           tmp_idx[i_input]])
+    int real_idx = GetRealDataIndex(tmp_idx[i_input]);
+    if (lazy_features_used[train_data_->num_data() * feature_index + real_idx])
       continue;
     total += penalty;
   }
@@ -231,8 +238,9 @@ void CEGBTreeLearner::Split(Tree *tree, int best_leaf, int *left_leaf,
   data_size_t cnt_leaf_data = 0;
   auto tmp_idx = data_partition_->GetIndexOnLeaf(best_leaf, &cnt_leaf_data);
   for (data_size_t i_input = 0; i_input < cnt_leaf_data; ++i_input) {
+    int real_idx = GetRealDataIndex(tmp_idx[i_input]);
     lazy_features_used[train_data_->num_data() * inner_feature_index +
-                       tmp_idx[i_input]] = true;
+                       real_idx] = true;
   }
 
   if (independent_branches == true) {

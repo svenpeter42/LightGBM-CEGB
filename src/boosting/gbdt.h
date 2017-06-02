@@ -278,11 +278,11 @@ protected:
   * \param tree Trained tree of this iteration
   * \param cur_tree_id Current tree for multiclass training
   */
-  void UpdateScoreOutOfBag(const Tree* tree, const int cur_tree_id);
+  virtual void UpdateScoreOutOfBag(const Tree* tree, const int cur_tree_id);
   /*!
   * \brief calculate the object function
   */
-  void Boosting();
+  virtual void Boosting();
   /*!
   * \brief updating score after tree was trained
   * \param tree Trained tree of this iteration
