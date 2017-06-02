@@ -160,19 +160,6 @@ void CEGB::PredictMulti(const double *features, double *output_raw,
   }
 }
 
-// inline void AddScore(double val, int cur_tree_id) {
-//  int64_t offset = cur_tree_id * num_data_;
-//#pragma omp parallel for schedule(static)
-//  for (int64_t i = 0; i < num_data_; ++i) {
-//    score_[offset + i] += val;
-//  }
-//}
-
-// inline void AddScore(const Tree *tree, int cur_tree_id) {
-//  tree->AddPredictionToScore(data_, num_data_,
-//                             score_.data() + cur_tree_id * num_data_);
-//}
-
 void CEGB::MyAddPredictionToScore(const Tree *tree,
                                   const data_size_t *data_indices,
                                   data_size_t data_cnt, int cur_tree_id) {
@@ -194,46 +181,24 @@ void CEGB::MyAddPredictionToScore(const Tree *tree,
 }
 
 void CEGB::UpdateScore(const Tree *tree, const int cur_tree_id) {
-#ifdef TIMETAG
-  auto start_time = std::chrono::steady_clock::now();
-#endif
   // update training score
   if (!is_use_subset_) {
     train_score_updater_->AddScore(tree_learner_.get(), tree, cur_tree_id);
   } else {
     MyAddPredictionToScore(tree, nullptr, 0, cur_tree_id);
-    // train_score_updater_->AddScore(tree, cur_tree_id);
   }
-#ifdef TIMETAG
-  train_score_time += std::chrono::steady_clock::now() - start_time;
-#endif
-#ifdef TIMETAG
-  start_time = std::chrono::steady_clock::now();
-#endif
   // update validation score
   for (auto &score_updater : valid_score_updater_) {
     score_updater->AddScore(tree, cur_tree_id);
   }
-#ifdef TIMETAG
-  valid_score_time += std::chrono::steady_clock::now() - start_time;
-#endif
 }
 
 void CEGB::UpdateScoreOutOfBag(const Tree *tree, const int cur_tree_id) {
-#ifdef TIMETAG
-  auto start_time = std::chrono::steady_clock::now();
-#endif
   // we need to predict out-of-bag scores of data for boosting
   if (num_data_ - bag_data_cnt_ > 0 && !is_use_subset_) {
-    // train_score_updater_->AddScore(tree,
-    //                               bag_data_indices_.data() + bag_data_cnt_,
-    //                               num_data_ - bag_data_cnt_, cur_tree_id);
     MyAddPredictionToScore(tree, bag_data_indices_.data() + bag_data_cnt_,
                            num_data_ - bag_data_cnt_, cur_tree_id);
   }
-#ifdef TIMETAG
-  out_of_bag_score_time += std::chrono::steady_clock::now() - start_time;
-#endif
 }
 
 } // namespace LightGBM

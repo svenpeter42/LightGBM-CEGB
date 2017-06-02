@@ -45,10 +45,6 @@ void CEGBTreeLearner::FindBestThresholds() {
   }
   ConstructHistograms(is_feature_used, use_subtract);
 
-#ifdef TIMETAG
-  auto start_time = std::chrono::steady_clock::now();
-#endif
-
   std::vector<SplitInfo> smaller_all(num_features_);
   std::vector<SplitInfo> larger_all(num_features_);
 
@@ -97,21 +93,20 @@ void CEGBTreeLearner::FindBestThresholds() {
     if (leaf_larger < 0)
       continue;
 
-    if (need_lazy_features) {
+    if (need_lazy_features)
       leaf_feature_penalty[leaf_larger][feature_index] =
           CalculateOndemandCosts(real_fidx, leaf_larger);
-    }
 
-    if (use_subtract) {
+    if (use_subtract)
       larger_leaf_histogram_array_[feature_index].Subtract(
           smaller_leaf_histogram_array_[feature_index]);
-    } else {
+    else
       train_data_->FixHistogram(
           feature_index, larger_leaf_splits_->sum_gradients(),
           larger_leaf_splits_->sum_hessians(),
           larger_leaf_splits_->num_data_in_leaf(),
           larger_leaf_histogram_array_[feature_index].RawData());
-    }
+
     SplitInfo larger_split;
     // find best threshold for larger child
     larger_leaf_histogram_array_[feature_index].FindBestThreshold(
@@ -130,10 +125,6 @@ void CEGBTreeLearner::FindBestThresholds() {
 
   if (leaf_larger >= 0)
     insert_or_assign(leaf_feature_splits, leaf_larger, larger_all);
-
-#ifdef TIMETAG
-  find_split_time += std::chrono::steady_clock::now() - start_time;
-#endif
 }
 
 double CEGBTreeLearner::CalculateOndemandCosts(int feature_index,
