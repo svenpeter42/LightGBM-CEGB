@@ -13,8 +13,16 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <set>
 
 namespace LightGBM {
+
+namespace detail {
+struct CEGB_CostInfo {
+  size_t n_splits;
+  std::set<int> features;
+};
+} //namespace detail
 
 /*!
 * \brief CEGB algorithm implementation. including Training, prediction.
@@ -66,10 +74,14 @@ public:
   void UpdateScore(const Tree *tree, const int cur_tree_id) override;
   void UpdateScoreOutOfBag(const Tree *tree, const int cur_tree_id) override;
 
+  inline void InitPredict(int num_iteration) override;
+
 private:
   std::vector<bool> lazy_feature_used;
   std::vector<bool> coupled_feature_used;
   std::vector<int> iter_features_used;
+
+  std::vector<std::vector<detail::CEGB_CostInfo>> models_costinfo;
 
   bool allow_train;
 

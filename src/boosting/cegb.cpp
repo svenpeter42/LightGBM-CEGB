@@ -105,6 +105,39 @@ static double find_cost_or_zero(std::map<int, double> &m, int feature) {
     return res->second;
 }
 
+inline void CEGB::InitPredict(int num_iteration) {
+  GBDT::InitPredict(num_iteration);
+
+  if (num_tree_per_iteration_ > 1)
+    Log::Fatal(
+        "CEGB::InitPredict not implemented for num_tree_per_iteration_ > 1.");
+
+  models_costinfo.clear();
+  models_costinfo.resize(num_tree_per_iteration_);
+
+  for (int i = 0; i < num_tree_per_iteration_; ++i)
+    models_costinfo[i].resize(models_[i]->num_leaves());
+
+  for (int i = 0; i < num_tree_per_iteration_; ++i) {
+    auto &model = models_[i];
+    int n_leafs = model->num_leaves();
+
+    for (int i_leaf = 0; i < n_leafs; ++i) {
+      detail::CEGB_CostInfo &cinfo = models_costinfo[i][i_leaf];
+
+      cinfo.n_splits = 0;
+      cinfo.features.clear();
+
+      std::vector<int> path = model->GetPathToLeaf(i_leaf);
+
+      for (int i_split_node : path) {
+        cinfo.features.insert(model->split_feature(i_split_node));
+        cinfo.n_splits++;
+      }
+    }
+  }
+}
+
 void CEGB::PredictMulti(const double *features, double *output_raw,
                         double *output, double *leaf, double *cost) const {
 
@@ -120,12 +153,11 @@ void CEGB::PredictMulti(const double *features, double *output_raw,
     auto &model = models_[i];
 
     int i_leaf = model->PredictLeafIndex(features);
-    std::vector<int> path = model->GetPathToLeaf(i_leaf);
+
+    const detail::CEGB_CostInfo &cinfo = models_costinfo[i][i_leaf];
 
     // feature penalty
-    for (int i_node : path) {
-      int i_feature = model->split_feature(i_node);
-
+    for (int i_feature : cinfo.features) {
       if (features_used.find(i_feature) == features_used.end())
         continue;
 
@@ -137,7 +169,7 @@ void CEGB::PredictMulti(const double *features, double *output_raw,
     }
 
     // split penalty
-    i_cost += gbdt_config_->cegb_config.penalty_split * path.size();
+    i_cost += gbdt_config_->cegb_config.penalty_split * cinfo.n_splits;
 
     // prediction
     i_pred += model->LeafOutput(i_leaf);

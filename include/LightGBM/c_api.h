@@ -653,6 +653,18 @@ LIGHTGBM_C_EXPORT int LGBM_BoosterPredictForMat(BoosterHandle handle,
                                                 int64_t* out_len,
                                                 double* out_result);
 
+
+LIGHTGBM_C_EXPORT int LGBM_CEGBBoosterPredictForMat(BoosterHandle handle,
+                                                    const void* data,
+                                                    int data_type,
+                                                    int32_t nrow,
+                                                    int32_t ncol,
+                                                    int is_row_major,
+                                                    int num_iteration,
+                                                    const char* parameter,
+                                                    int64_t* out_len,
+                                                    double* out_result);
+
 /*!
 * \brief save model into file
 * \param handle handle

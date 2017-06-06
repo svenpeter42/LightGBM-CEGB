@@ -31,7 +31,7 @@ public:
   * \param is_predict_leaf_index True if output leaf index instead of prediction score
   */
   Predictor(Boosting* boosting, int num_iteration,
-            bool is_raw_score, bool is_predict_leaf_index,
+            bool is_raw_score, bool is_predict_leaf_index, bool is_predict_cost,
             bool early_stop, int early_stop_freq, double early_stop_margin) {
 
     early_stop_ = CreatePredictionEarlyStopInstance("none", LightGBM::PredictionEarlyStopConfig());
@@ -53,11 +53,28 @@ public:
     }
     boosting->InitPredict(num_iteration);
     boosting_ = boosting;
-    num_pred_one_row_ = boosting_->NumPredictOneRow(num_iteration, is_predict_leaf_index);
+    num_pred_one_row_real_ = num_pred_one_row_ = boosting_->NumPredictOneRow(num_iteration, is_predict_leaf_index);
     num_feature_ = boosting_->MaxFeatureIdx() + 1;
     predict_buf_ = std::vector<std::vector<double>>(num_threads_, std::vector<double>(num_feature_, 0.0f));
 
-    if (is_predict_leaf_index) {
+    if (is_predict_cost) {
+      num_pred_one_row_ *= 2;
+      if (is_raw_score) {
+        predict_fun_ = [this](const std::vector<std::pair<int, double>>& features, double* output) {
+          int tid = omp_get_thread_num();
+          CopyToPredictBuffer(predict_buf_[tid].data(), features);
+          boosting_->PredictMulti(predict_buf_[tid].data(), nullptr, output, nullptr, output + num_pred_one_row_real_);
+          ClearPredictBuffer(predict_buf_[tid].data(), predict_buf_[tid].size(), features);
+        };
+      } else {
+        predict_fun_ = [this](const std::vector<std::pair<int, double>>& features, double* output) {
+          int tid = omp_get_thread_num();
+          CopyToPredictBuffer(predict_buf_[tid].data(), features);
+          boosting_->PredictMulti(predict_buf_[tid].data(), output, nullptr, nullptr, output + num_pred_one_row_real_);
+          ClearPredictBuffer(predict_buf_[tid].data(), predict_buf_[tid].size(), features);
+        };
+      }
+    } else if (is_predict_leaf_index) {
       predict_fun_ = [this](const std::vector<std::pair<int, double>>& features, double* output) {
         int tid = omp_get_thread_num();
         CopyToPredictBuffer(predict_buf_[tid].data(), features);
@@ -184,6 +201,7 @@ private:
   PredictionEarlyStopInstance early_stop_;
   int num_feature_;
   int num_pred_one_row_;
+  int num_pred_one_row_real_;
   int num_threads_;
   std::vector<std::vector<double>> predict_buf_;
 };

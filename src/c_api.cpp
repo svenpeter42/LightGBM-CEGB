@@ -178,9 +178,36 @@ public:
     auto param = ConfigBase::Str2Map(parameter);
     IOConfig config;
     config.Set(param);
-    Predictor predictor(boosting_.get(), num_iteration, is_raw_score, is_predict_leaf,
+    Predictor predictor(boosting_.get(), num_iteration, is_raw_score, is_predict_leaf, false,
                         config.pred_early_stop, config.pred_early_stop_freq, config.pred_early_stop_margin);
     int64_t num_preb_in_one_row = boosting_->NumPredictOneRow(num_iteration, is_predict_leaf);
+    auto pred_fun = predictor.GetPredictFunction();
+    OMP_INIT_EX();
+    #pragma omp parallel for schedule(static)
+    for (int i = 0; i < nrow; ++i) {
+      OMP_LOOP_EX_BEGIN();
+      auto one_row = get_row_fun(i);
+      auto pred_wrt_ptr = out_result + static_cast<size_t>(num_preb_in_one_row) * i;
+      pred_fun(one_row, pred_wrt_ptr);
+      OMP_LOOP_EX_END();
+    }
+    OMP_THROW_EX();
+    *out_len = nrow * num_preb_in_one_row;
+  }
+
+  void PredictCEGB(int num_iteration, int nrow,
+                   std::function<std::vector<std::pair<int, double>>(int row_idx)> get_row_fun,
+                   const char* parameter,
+                   double* out_result, int64_t* out_len)
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto param = ConfigBase::Str2Map(parameter);
+    IOConfig config;
+    config.Set(param);
+
+    Predictor predictor(boosting_.get(), num_iteration, false, false, true,
+                        config.pred_early_stop, config.pred_early_stop_freq, config.pred_early_stop_margin);
+    int64_t num_preb_in_one_row = 2 * boosting_->NumPredictOneRow(num_iteration, true);
     auto pred_fun = predictor.GetPredictFunction();
     OMP_INIT_EX();
     #pragma omp parallel for schedule(static)
@@ -211,7 +238,7 @@ public:
     auto param = ConfigBase::Str2Map(parameter);
     IOConfig config;
     config.Set(param);
-    Predictor predictor(boosting_.get(), num_iteration, is_raw_score, is_predict_leaf,
+    Predictor predictor(boosting_.get(), num_iteration, is_raw_score, is_predict_leaf, false,
                         config.pred_early_stop, config.pred_early_stop_freq, config.pred_early_stop_margin);
     bool bool_data_has_header = data_has_header > 0 ? true : false;
     predictor.Predict(data_filename, result_filename, bool_data_has_header);
@@ -1066,6 +1093,24 @@ int LGBM_BoosterPredictForMat(BoosterHandle handle,
   Booster* ref_booster = reinterpret_cast<Booster*>(handle);
   auto get_row_fun = RowPairFunctionFromDenseMatric(data, nrow, ncol, data_type, is_row_major);
   ref_booster->Predict(num_iteration, predict_type, nrow, get_row_fun,
+                       parameter, out_result, out_len);
+  API_END();
+}
+
+int LGBM_CEGBBoosterPredictForMat(BoosterHandle handle,
+                              const void* data,
+                              int data_type,
+                              int32_t nrow,
+                              int32_t ncol,
+                              int is_row_major,
+                              int num_iteration,
+                              const char* parameter,
+                              int64_t* out_len,
+                              double* out_result) {
+  API_BEGIN();
+  Booster* ref_booster = reinterpret_cast<Booster*>(handle);
+  auto get_row_fun = RowPairFunctionFromDenseMatric(data, nrow, ncol, data_type, is_row_major);
+  ref_booster->PredictCEGB(num_iteration, nrow, get_row_fun,
                        parameter, out_result, out_len);
   API_END();
 }
