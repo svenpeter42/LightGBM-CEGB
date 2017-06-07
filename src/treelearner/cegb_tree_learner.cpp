@@ -205,19 +205,15 @@ void CEGBTreeLearner::FindBestSplitsForLeaves() {
   if (independent_branches == true || used_new_coupled_feature == false)
     return;
 
-  OMP_INIT_EX();
-#pragma omp parallel for schedule(static)
-  for (int leaf = 0; leaf < (int)leaf_feature_splits.size(); ++leaf) {
-    OMP_LOOP_EX_BEGIN();
+  for (auto i : leaf_feature_splits) {
+    int leaf = i.first;
     if (leaf == smaller_leaf_splits_->LeafIndex())
       continue;
     if (leaf == larger_leaf_splits_->LeafIndex())
       continue;
 
     FindBestSplitForLeaf(leaf);
-    OMP_LOOP_EX_END();
   }
-  OMP_THROW_EX();
 }
 
 void CEGBTreeLearner::Split(Tree *tree, int best_leaf, int *left_leaf,

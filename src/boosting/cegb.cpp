@@ -108,7 +108,6 @@ static double find_cost_or_zero(std::map<int, double> &m, int feature) {
 inline void CEGB::InitPredict(int num_iteration) {
   GBDT::InitPredict(num_iteration);
 
-  std::cout << "InitPredict\n";
   if (num_tree_per_iteration_ > 1)
     Log::Fatal(
         "CEGB::InitPredict not implemented for num_tree_per_iteration_ > 1.");
