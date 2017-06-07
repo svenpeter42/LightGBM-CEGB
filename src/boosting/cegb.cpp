@@ -108,27 +108,33 @@ static double find_cost_or_zero(std::map<int, double> &m, int feature) {
 inline void CEGB::InitPredict(int num_iteration) {
   GBDT::InitPredict(num_iteration);
 
+  std::cout << "InitPredict\n";
   if (num_tree_per_iteration_ > 1)
     Log::Fatal(
         "CEGB::InitPredict not implemented for num_tree_per_iteration_ > 1.");
 
-  models_costinfo.clear();
-  models_costinfo.resize(num_tree_per_iteration_);
+  if (models_costinfo.size() == num_iteration_for_pred_)
+    return;
 
-  for (int i = 0; i < num_tree_per_iteration_; ++i)
+  models_costinfo.clear();
+  models_costinfo.resize(num_iteration_for_pred_);
+
+  for (int i = 0; i < num_iteration_for_pred_; ++i)
     models_costinfo[i].resize(models_[i]->num_leaves());
 
-  for (int i = 0; i < num_tree_per_iteration_; ++i) {
+  for (int i = 0; i < num_iteration_for_pred_; ++i) {
     auto &model = models_[i];
     int n_leafs = model->num_leaves();
 
-    for (int i_leaf = 0; i < n_leafs; ++i) {
+    std::vector<std::vector<int>> paths = model->GetPathToLeafs();
+
+    for (int i_leaf = 0; i_leaf < n_leafs; ++i_leaf) {
       detail::CEGB_CostInfo &cinfo = models_costinfo[i][i_leaf];
 
       cinfo.n_splits = 0;
       cinfo.features.clear();
 
-      std::vector<int> path = model->GetPathToLeaf(i_leaf);
+      std::vector<int> &path = paths[i_leaf];
 
       for (int i_split_node : path) {
         cinfo.features.insert(model->split_feature(i_split_node));
@@ -158,7 +164,7 @@ void CEGB::PredictMulti(const double *features, double *output_raw,
 
     // feature penalty
     for (int i_feature : cinfo.features) {
-      if (features_used.find(i_feature) == features_used.end())
+      if (features_used.find(i_feature) != features_used.end())
         continue;
 
       i_cost += find_cost_or_zero(

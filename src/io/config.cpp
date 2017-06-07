@@ -9,6 +9,7 @@
 #include <unordered_set>
 #include <algorithm>
 #include <limits>
+#include <cmath>
 
 namespace LightGBM {
 
@@ -340,9 +341,18 @@ void TreeConfig::Set(const std::unordered_map<std::string, std::string>& params)
 
 void CEGBConfig::Set(const std::unordered_map<std::string, std::string>& params) {
   GetDouble(params, "cegb_tradeoff", &tradeoff);
-  CHECK(tradeoff >= 0.0f);
+  if (std::isinf(tradeoff) || std::isnan(tradeoff) || std::signbit(tradeoff)) {
+    Log::Warning("invalid cegb_tradeoff, setting to zero!");
+    tradeoff = 0.0f;
+  }
+
+
   GetDouble(params, "cegb_penalty_split", &penalty_split);
-  CHECK(penalty_split >= 0.0f);
+  if (std::isinf(penalty_split) || std::isnan(penalty_split) || std::signbit(penalty_split)) {
+    Log::Warning("invalid cegb_penalty_split, setting to zero!");
+    penalty_split = 0.0f;
+  }
+
   GetBool(params, "cegb_independent_branches", &independent_branches);
 
   std::string value;

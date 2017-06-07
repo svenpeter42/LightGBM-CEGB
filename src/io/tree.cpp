@@ -12,6 +12,7 @@
 #include <string>
 #include <memory>
 #include <iomanip>
+#include <queue>
 
 namespace LightGBM {
 
@@ -768,6 +769,34 @@ Tree::Tree(const std::string& str) {
     has_categorical_ = false;
   }
 
+}
+
+
+std::vector<std::vector<int>> Tree::GetPathToLeafs() const {
+  std::vector<std::vector<int>> paths(num_leaves_);
+  std::vector<int> path;
+  std::queue<std::pair<int, std::vector<int>>> q;
+
+  q.push(std::make_pair(0, path));
+
+  while (q.size() > 0) {
+    auto &i_q = q.front();
+    int i_node = i_q.first;
+    std::vector<int> &i_path = i_q.second;
+
+    if (i_node < 0) {
+      i_node = ~i_node;
+      paths[i_node] = i_path;
+    } else {
+      i_path.push_back(i_node);
+      q.push(std::make_pair(left_child_[i_node], i_path));
+      q.push(std::make_pair(right_child_[i_node], i_path));
+    }
+
+    q.pop();
+  }
+
+  return paths;
 }
 
 }  // namespace LightGBM

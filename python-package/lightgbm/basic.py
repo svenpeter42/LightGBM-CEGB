@@ -353,6 +353,20 @@ class _InnerPredictor(object):
         this.pop('handle', None)
         return this
 
+    def cegb_predict(self, data, num_iteration=-1, is_reshape=True):
+        if isinstance(data, Dataset):
+            raise TypeError("Cannot use Dataset instance for prediction, please use raw data instead")
+        data = _data_from_pandas(data, None, None, self.pandas_categorical)[0]
+        if num_iteration > self.num_total_iteration:
+            num_iteration = self.num_total_iteration
+        if not isinstance(data, np.ndarray):
+            raise TypeError("cegb_predict: Data must be np.ndarray")
+        preds, nrow = self.__cegb_pred_for_np2d(data, num_iteration)
+
+        if is_reshape:
+            preds = preds.reshape((nrow, 2, -1))
+        return preds, nrow
+
     def predict(self, data, num_iteration=-1,
                 raw_score=False, pred_leaf=False, data_has_header=False,
                 is_reshape=True):
@@ -472,6 +486,40 @@ class _InnerPredictor(object):
             ctypes.c_int(mat.shape[1]),
             ctypes.c_int(C_API_IS_ROW_MAJOR),
             ctypes.c_int(predict_type),
+            ctypes.c_int(num_iteration),
+            c_str(self.pred_parameter),
+            ctypes.byref(out_num_preds),
+            preds.ctypes.data_as(ctypes.POINTER(ctypes.c_double))))
+        if n_preds != out_num_preds.value:
+            raise ValueError("Wrong length for predict results")
+        return preds, mat.shape[0]
+
+
+
+    def __cegb_pred_for_np2d(self, mat, num_iteration):
+        """
+        Predict for a 2-D numpy matrix.
+        """
+        if len(mat.shape) != 2:
+            raise ValueError('Input numpy.ndarray must be 2 dimensional')
+
+        if mat.dtype == np.float32 or mat.dtype == np.float64:
+            data = np.array(mat.reshape(mat.size), dtype=mat.dtype, copy=False)
+        else:
+            """change non-float data to float data, need to copy"""
+            data = np.array(mat.reshape(mat.size), dtype=np.float32)
+        ptr_data, type_ptr_data = c_float_array(data)
+        n_preds = self.__get_num_preds(num_iteration, mat.shape[0],
+                                       C_API_PREDICT_LEAF_INDEX) * 2
+        preds = np.zeros(n_preds, dtype=np.float64)
+        out_num_preds = ctypes.c_int64(0)
+        _safe_call(_LIB.LGBM_CEGBBoosterPredictForMat(
+            self.handle,
+            ptr_data,
+            ctypes.c_int(type_ptr_data),
+            ctypes.c_int(mat.shape[0]),
+            ctypes.c_int(mat.shape[1]),
+            ctypes.c_int(C_API_IS_ROW_MAJOR),
             ctypes.c_int(num_iteration),
             c_str(self.pred_parameter),
             ctypes.byref(out_num_preds),
@@ -1609,6 +1657,12 @@ class Booster(object):
         if num_iteration <= 0:
             num_iteration = self.best_iteration
         return predictor.predict(data, num_iteration, raw_score, pred_leaf, data_has_header, is_reshape)
+
+    def cegb_predict(self, data, num_iteration=-1, is_reshape=True, pred_parameter=None):
+        predictor = self._to_predictor(pred_parameter)
+        if num_iteration <= 0:
+            num_iteration = self.best_iteration
+        return predictor.cegb_predict(data, num_iteration, is_reshape=is_reshape)
 
     def _to_predictor(self, pred_parameter=None):
         """Convert to predictor"""

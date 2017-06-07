@@ -205,7 +205,7 @@ public:
     IOConfig config;
     config.Set(param);
 
-    Predictor predictor(boosting_.get(), num_iteration, false, false, true,
+    Predictor predictor(boosting_.get(), num_iteration, false, true, true,
                         config.pred_early_stop, config.pred_early_stop_freq, config.pred_early_stop_margin);
     int64_t num_preb_in_one_row = 2 * boosting_->NumPredictOneRow(num_iteration, true);
     auto pred_fun = predictor.GetPredictFunction();

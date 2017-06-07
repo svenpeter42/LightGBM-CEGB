@@ -11,9 +11,9 @@
 
 #include <cstdio>
 #include <fstream>
+#include <set>
 #include <string>
 #include <vector>
-#include <set>
 
 namespace LightGBM {
 
@@ -22,7 +22,7 @@ struct CEGB_CostInfo {
   size_t n_splits;
   std::set<int> features;
 };
-} //namespace detail
+} // namespace detail
 
 /*!
 * \brief CEGB algorithm implementation. including Training, prediction.
