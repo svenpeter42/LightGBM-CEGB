@@ -270,6 +270,12 @@ public:
   */
   static Boosting* CreateBoosting(const char* filename);
 
+  /*!
+  * \brief Create boosting object from model string
+  * \param model model string
+  * \return The boosting object
+  */
+  static Boosting* CreateBoosting(const std::string& model);
 };
 
 }  // namespace LightGBM

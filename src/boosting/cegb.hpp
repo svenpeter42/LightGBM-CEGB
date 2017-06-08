@@ -76,7 +76,16 @@ public:
 
   inline void InitPredict(int num_iteration) override;
 
+  virtual std::string SaveModelToString(int num_iterations) const override;
+
 private:
+  std::map<int, double> predict_penalty_feature_lazy;
+  std::map<int, double> predict_penalty_feature_coupled;
+  double predict_penalty_split;
+  double predict_tradeoff;
+  bool predict_independent_branches;
+
+
   std::vector<bool> lazy_feature_used;
   std::vector<bool> coupled_feature_used;
   std::vector<int> iter_features_used;

@@ -6,8 +6,7 @@
 #include <vector>
 namespace LightGBM {
 
-template <typename K, typename V>
-static inline void insert_or_assign(std::map<K, V> &m, K k, V v) {
+template <typename K, typename V> static inline void insert_or_assign(std::map<K, V> &m, K k, V v) {
   auto result = m.find(k);
 
   if (result != m.end())
@@ -31,8 +30,7 @@ void CEGBTreeLearner::FindBestThresholds() {
   for (int feature_index = 0; feature_index < num_features_; ++feature_index) {
     if (!is_feature_used_[feature_index])
       continue;
-    if (parent_leaf_histogram_array_ != nullptr &&
-        !parent_leaf_histogram_array_[feature_index].is_splittable()) {
+    if (parent_leaf_histogram_array_ != nullptr && !parent_leaf_histogram_array_[feature_index].is_splittable()) {
       smaller_leaf_histogram_array_[feature_index].set_is_splittable(false);
       continue;
     }
@@ -71,48 +69,36 @@ void CEGBTreeLearner::FindBestThresholds() {
 
     // const int tid = omp_get_thread_num();
     SplitInfo smaller_split;
-    train_data_->FixHistogram(
-        feature_index, smaller_leaf_splits_->sum_gradients(),
-        smaller_leaf_splits_->sum_hessians(),
-        smaller_leaf_splits_->num_data_in_leaf(),
-        smaller_leaf_histogram_array_[feature_index].RawData());
+    train_data_->FixHistogram(feature_index, smaller_leaf_splits_->sum_gradients(), smaller_leaf_splits_->sum_hessians(),
+                              smaller_leaf_splits_->num_data_in_leaf(), smaller_leaf_histogram_array_[feature_index].RawData());
     int real_fidx = train_data_->RealFeatureIndex(feature_index);
 
-    smaller_leaf_histogram_array_[feature_index].FindBestThreshold(
-        smaller_leaf_splits_->sum_gradients(),
-        smaller_leaf_splits_->sum_hessians(),
-        smaller_leaf_splits_->num_data_in_leaf(), &smaller_split);
+    smaller_leaf_histogram_array_[feature_index].FindBestThreshold(smaller_leaf_splits_->sum_gradients(),
+                                                                   smaller_leaf_splits_->sum_hessians(),
+                                                                   smaller_leaf_splits_->num_data_in_leaf(), &smaller_split);
     smaller_all[feature_index] = smaller_split;
     smaller_all[feature_index].feature = real_fidx;
 
     if (need_lazy_features)
-      leaf_feature_penalty[leaf_smaller][feature_index] =
-          CalculateOndemandCosts(real_fidx, leaf_smaller);
+      leaf_feature_penalty[leaf_smaller][feature_index] = CalculateOndemandCosts(real_fidx, leaf_smaller);
 
     // only has root leaf
     if (leaf_larger < 0)
       continue;
 
     if (need_lazy_features)
-      leaf_feature_penalty[leaf_larger][feature_index] =
-          CalculateOndemandCosts(real_fidx, leaf_larger);
+      leaf_feature_penalty[leaf_larger][feature_index] = CalculateOndemandCosts(real_fidx, leaf_larger);
 
     if (use_subtract)
-      larger_leaf_histogram_array_[feature_index].Subtract(
-          smaller_leaf_histogram_array_[feature_index]);
+      larger_leaf_histogram_array_[feature_index].Subtract(smaller_leaf_histogram_array_[feature_index]);
     else
-      train_data_->FixHistogram(
-          feature_index, larger_leaf_splits_->sum_gradients(),
-          larger_leaf_splits_->sum_hessians(),
-          larger_leaf_splits_->num_data_in_leaf(),
-          larger_leaf_histogram_array_[feature_index].RawData());
+      train_data_->FixHistogram(feature_index, larger_leaf_splits_->sum_gradients(), larger_leaf_splits_->sum_hessians(),
+                                larger_leaf_splits_->num_data_in_leaf(), larger_leaf_histogram_array_[feature_index].RawData());
 
     SplitInfo larger_split;
     // find best threshold for larger child
-    larger_leaf_histogram_array_[feature_index].FindBestThreshold(
-        larger_leaf_splits_->sum_gradients(),
-        larger_leaf_splits_->sum_hessians(),
-        larger_leaf_splits_->num_data_in_leaf(), &larger_split);
+    larger_leaf_histogram_array_[feature_index].FindBestThreshold(larger_leaf_splits_->sum_gradients(), larger_leaf_splits_->sum_hessians(),
+                                                                  larger_leaf_splits_->num_data_in_leaf(), &larger_split);
 
     larger_all[feature_index] = larger_split;
     larger_all[feature_index].feature = real_fidx;
@@ -120,15 +106,13 @@ void CEGBTreeLearner::FindBestThresholds() {
   }
   OMP_THROW_EX();
 
-  insert_or_assign(leaf_feature_splits, smaller_leaf_splits_->LeafIndex(),
-                   smaller_all);
+  insert_or_assign(leaf_feature_splits, smaller_leaf_splits_->LeafIndex(), smaller_all);
 
   if (leaf_larger >= 0)
     insert_or_assign(leaf_feature_splits, leaf_larger, larger_all);
 }
 
-double CEGBTreeLearner::CalculateOndemandCosts(int feature_index,
-                                               int leaf_index) {
+double CEGBTreeLearner::CalculateOndemandCosts(int feature_index, int leaf_index) {
   if (!need_lazy_features)
     return 0.0f;
 
@@ -184,8 +168,7 @@ void CEGBTreeLearner::FindBestSplitForLeaf(int leaf) {
     if (i_gain < 0.0f)
       gain[i_feature] = -INFINITY;
     else
-      gain[i_feature] =
-          i_gain - cegb_config->tradeoff * (i_penalty_lazy + i_penalty_coupled);
+      gain[i_feature] = i_gain - cegb_config->tradeoff * (i_penalty_lazy + i_penalty_coupled);
   }
 
   auto best_idx = ArrayArgs<double>::ArgMax(gain);
@@ -216,29 +199,27 @@ void CEGBTreeLearner::FindBestSplitsForLeaves() {
   }
 }
 
-void CEGBTreeLearner::Split(Tree *tree, int best_leaf, int *left_leaf,
-                            int *right_leaf) {
+void CEGBTreeLearner::Split(Tree *tree, int best_leaf, int *left_leaf, int *right_leaf) {
   const SplitInfo &best_split_info = best_split_per_leaf_[best_leaf];
-  const int inner_feature_index =
-      train_data_->InnerFeatureIndex(best_split_info.feature);
+  const int inner_feature_index = train_data_->InnerFeatureIndex(best_split_info.feature);
+  const int real_feature_index = best_split_info.feature;
 
   data_size_t cnt_leaf_data = 0;
   auto tmp_idx = data_partition_->GetIndexOnLeaf(best_leaf, &cnt_leaf_data);
   for (data_size_t i_input = 0; i_input < cnt_leaf_data; ++i_input) {
     int real_idx = GetRealDataIndex(tmp_idx[i_input]);
-    lazy_features_used[train_data_->num_data() * inner_feature_index +
-                       real_idx] = true;
+    lazy_features_used[train_data_->num_data() * real_feature_index + real_idx] = true;
   }
 
   if (independent_branches == true) {
     used_new_coupled_feature = false;
-    if (!coupled_features_used[inner_feature_index])
-      new_features_used.push_back(inner_feature_index);
+    if (!coupled_features_used[real_feature_index])
+      new_features_used.push_back(real_feature_index);
   } else {
-    if (coupled_features_used[inner_feature_index]) {
+    if (coupled_features_used[real_feature_index]) {
       used_new_coupled_feature = false;
     } else {
-      coupled_features_used[inner_feature_index] = true;
+      coupled_features_used[real_feature_index] = true;
       used_new_coupled_feature = true;
     }
   }

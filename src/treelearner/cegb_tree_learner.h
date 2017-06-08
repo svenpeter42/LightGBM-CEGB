@@ -24,18 +24,13 @@ namespace LightGBM {
 
 class CEGBTreeLearner : public SerialTreeLearner {
 public:
-  CEGBTreeLearner(const TreeConfig *tree_config, const CEGBConfig *cegb_config_,
-                  std::vector<bool> &lazy_features_used_,
-                  std::vector<bool> &coupled_features_used_,
-                  std::vector<int> &new_features_used_,
+  CEGBTreeLearner(const TreeConfig *tree_config, const CEGBConfig *cegb_config_, std::vector<bool> &lazy_features_used_,
+                  std::vector<bool> &coupled_features_used_, std::vector<int> &new_features_used_,
                   std::vector<data_size_t> &bag_data_indices_
 
                   )
-      : SerialTreeLearner(tree_config), cegb_config(cegb_config_),
-        lazy_features_used(lazy_features_used_),
-        coupled_features_used(coupled_features_used_),
-        new_features_used(new_features_used_),
-        bag_data_indices(bag_data_indices_)
+      : SerialTreeLearner(tree_config), cegb_config(cegb_config_), lazy_features_used(lazy_features_used_),
+        coupled_features_used(coupled_features_used_), new_features_used(new_features_used_), bag_data_indices(bag_data_indices_)
 
   {
     independent_branches = false;

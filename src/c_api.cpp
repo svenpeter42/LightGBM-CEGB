@@ -32,6 +32,10 @@ public:
     boosting_.reset(Boosting::CreateBoosting(filename));
   }
 
+  explicit Booster(const std::string model) {
+    boosting_.reset(Boosting::CreateBoosting(model));
+  }
+
   Booster() {
     boosting_.reset(Boosting::CreateBoosting("gbdt", nullptr));
   }
@@ -203,7 +207,9 @@ public:
     std::lock_guard<std::mutex> lock(mutex_);
     auto param = ConfigBase::Str2Map(parameter);
     IOConfig config;
+    CEGBConfig config_cegb;
     config.Set(param);
+    config_cegb.Set(param);
 
     Predictor predictor(boosting_.get(), num_iteration, false, true, true,
                         config.pred_early_stop, config.pred_early_stop_freq, config.pred_early_stop_margin);
@@ -836,8 +842,8 @@ int LGBM_BoosterLoadModelFromString(
   int* out_num_iterations,
   BoosterHandle* out) {
   API_BEGIN();
-  auto ret = std::unique_ptr<Booster>(new Booster());
-  ret->LoadModelFromString(model_str);
+  auto ret = std::unique_ptr<Booster>(new Booster(std::string(model_str)));
+  //ret->LoadModelFromString(model_str);
   *out_num_iterations = ret->GetBoosting()->GetCurrentIteration();
   *out = ret.release();
   API_END();

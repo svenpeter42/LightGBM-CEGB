@@ -340,7 +340,6 @@ void Tree::AddPredictionToScoreGetFeatures(const Dataset* data, data_size_t num_
             }
           }
           score[i] += static_cast<double>(leaf_value_[~node]);
-          features_used[i] = ~node;
         }
       });
     } else {
@@ -365,7 +364,6 @@ void Tree::AddPredictionToScoreGetFeatures(const Dataset* data, data_size_t num_
             }
           }
           score[i] += static_cast<double>(leaf_value_[~node]);
-          features_used[i] = ~node;
         }
       });
     }
@@ -391,7 +389,6 @@ void Tree::AddPredictionToScoreGetFeatures(const Dataset* data, data_size_t num_
             }
           }
           score[i] += static_cast<double>(leaf_value_[~node]);
-          features_used[i] = ~node;
         }
       });
     } else {
@@ -414,7 +411,6 @@ void Tree::AddPredictionToScoreGetFeatures(const Dataset* data, data_size_t num_
             }
           }
           score[i] += static_cast<double>(leaf_value_[~node]);
-          features_used[i] = ~node;
         }
       });
     }
@@ -441,6 +437,7 @@ void Tree::AddPredictionToScoreGetFeatures(const Dataset* data,
           const data_size_t idx = used_data_indices[i];
           while (node >= 0) {
             uint32_t fval = DefaultValueForZero(iter[node]->Get(idx), zero_bin_[node], default_bin_for_zero_[node]);
+            features_used[num_data_fused * split_feature_[node] + idx] = true;
             if (inner_decision_funs[decision_type_[node]](
               fval,
               threshold_in_bin_[node])) {
@@ -450,7 +447,6 @@ void Tree::AddPredictionToScoreGetFeatures(const Dataset* data,
             }
           }
           score[idx] += static_cast<double>(leaf_value_[~node]);
-          features_used[i] = ~node;
         }
       });
     } else {
@@ -466,6 +462,7 @@ void Tree::AddPredictionToScoreGetFeatures(const Dataset* data,
           int node = 0;
           while (node >= 0) {
             uint32_t fval = DefaultValueForZero(iter[split_feature_inner_[node]]->Get(idx), zero_bin_[node], default_bin_for_zero_[node]);
+            features_used[num_data_fused * split_feature_[node] + idx] = true;
             if (inner_decision_funs[decision_type_[node]](
               fval,
               threshold_in_bin_[node])) {
@@ -475,7 +472,6 @@ void Tree::AddPredictionToScoreGetFeatures(const Dataset* data,
             }
           }
           score[idx] += static_cast<double>(leaf_value_[~node]);
-          features_used[i] = ~node;
         }
       });
     }
@@ -494,6 +490,7 @@ void Tree::AddPredictionToScoreGetFeatures(const Dataset* data,
           const data_size_t idx = used_data_indices[i];
           while (node >= 0) {
             uint32_t fval = DefaultValueForZero(iter[node]->Get(idx), zero_bin_[node], default_bin_for_zero_[node]);
+            features_used[num_data_fused * split_feature_[node] + idx] = true;
             if (fval <= threshold_in_bin_[node]) {
               node = left_child_[node];
             } else {
@@ -501,7 +498,6 @@ void Tree::AddPredictionToScoreGetFeatures(const Dataset* data,
             }
           }
           score[idx] += static_cast<double>(leaf_value_[~node]);
-          features_used[i] = ~node;
         }
       });
     } else {
@@ -517,6 +513,7 @@ void Tree::AddPredictionToScoreGetFeatures(const Dataset* data,
           int node = 0;
           while (node >= 0) {
             uint32_t fval = DefaultValueForZero(iter[split_feature_inner_[node]]->Get(idx), zero_bin_[node], default_bin_for_zero_[node]);
+            features_used[num_data_fused * split_feature_[node] + idx] = true;
             if (fval <= threshold_in_bin_[node]) {
               node = left_child_[node];
             } else {
@@ -524,7 +521,6 @@ void Tree::AddPredictionToScoreGetFeatures(const Dataset* data,
             }
           }
           score[idx] += static_cast<double>(leaf_value_[~node]);
-          features_used[i] = ~node;
         }
       });
     }

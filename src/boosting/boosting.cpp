@@ -12,6 +12,12 @@ std::string GetBoostingTypeFromModelFile(const char* filename) {
   return type;
 }
 
+std::string GetBoostingTypeFromModelString(const std::string model) {
+  std::string::const_iterator pos_nl = std::find(model.begin(), model.end(), '\n');
+  std::string first_line(model.begin(), pos_nl);
+  return first_line;
+}
+
 bool Boosting::LoadFileToBoosting(Boosting* boosting, const char* filename) {
   if (boosting != nullptr) {
     TextReader<size_t> model_reader(filename, true);
@@ -25,6 +31,24 @@ bool Boosting::LoadFileToBoosting(Boosting* boosting, const char* filename) {
   }
 
   return true;
+}
+
+Boosting* Boosting::CreateBoosting(const std::string& model)
+{
+  std::unique_ptr<Boosting> ret;
+  auto type_in_string = GetBoostingTypeFromModelString(model);
+  if (type_in_string == std::string("cegb_tree")) {
+    ret.reset(new CEGB());
+  } else if (type_in_string == std::string("tree")) {
+    ret.reset(new DART());
+  } else {
+    Log::Fatal("unknown submodel type in model string %s", type_in_string);
+  }
+
+  if (!ret->LoadModelFromString(model))
+    return nullptr;
+
+  return ret.release();
 }
 
 Boosting* Boosting::CreateBoosting(const std::string& type, const char* filename) {
