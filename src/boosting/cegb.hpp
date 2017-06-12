@@ -45,19 +45,15 @@ public:
   * \param training_metrics Training metrics
   * \param output_model_filename Filename of output model
   */
-  void Init(const BoostingConfig *config, const Dataset *train_data,
-            const ObjectiveFunction *objective_function,
+  void Init(const BoostingConfig *config, const Dataset *train_data, const ObjectiveFunction *objective_function,
             const std::vector<const Metric *> &training_metrics) override;
-  void ResetTrainingData(
-      const BoostingConfig *config, const Dataset *train_data,
-      const ObjectiveFunction *objective_function,
-      const std::vector<const Metric *> &training_metrics) override;
+  void ResetTrainingData(const BoostingConfig *config, const Dataset *train_data, const ObjectiveFunction *objective_function,
+                         const std::vector<const Metric *> &training_metrics) override;
 
   /*!
   * \brief one training iteration
   */
-  bool TrainOneIter(const score_t *gradient, const score_t *hessian,
-                    bool is_eval) override;
+  bool TrainOneIter(const score_t *gradient, const score_t *hessian, bool is_eval) override;
 
   void RollbackOneIter();
 
@@ -66,8 +62,7 @@ public:
   */
   bool LoadModelFromString(const std::string &model_str) override;
 
-  void PredictMulti(const double *features, double *output_raw, double *output,
-                    double *leaf, double *cost) const override;
+  void PredictMulti(const double *features, double *output_raw, double *output, double *leaf, double *cost) const override;
 
   virtual const char *SubModelName() const override { return "cegb_tree"; }
 
@@ -78,13 +73,14 @@ public:
 
   virtual std::string SaveModelToString(int num_iterations) const override;
 
+  void InitPredict(int num_iteration, const BoostingConfig *config) override;
+
 private:
   std::map<int, double> predict_penalty_feature_lazy;
   std::map<int, double> predict_penalty_feature_coupled;
   double predict_penalty_split;
   double predict_tradeoff;
   bool predict_independent_branches;
-
 
   std::vector<bool> lazy_feature_used;
   std::vector<bool> coupled_feature_used;
@@ -99,8 +95,7 @@ private:
   void ResetFeatureTracking();
   void InitTreeLearner(const BoostingConfig *);
 
-  void MyAddPredictionToScore(const Tree *tree, const data_size_t *data_indices,
-                              data_size_t data_cnt, int cur_tree_id);
+  void MyAddPredictionToScore(const Tree *tree, const data_size_t *data_indices, data_size_t data_cnt, int cur_tree_id);
 };
 
 } // namespace LightGBM

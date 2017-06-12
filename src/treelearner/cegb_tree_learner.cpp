@@ -141,6 +141,10 @@ double CEGBTreeLearner::CalculateOndemandCosts(int feature_index, int leaf_index
 void CEGBTreeLearner::FindBestSplitForLeaf(int leaf) {
   std::vector<double> gain(num_features_);
 
+  data_size_t cnt_leaf_data = 0;
+  data_partition_->GetIndexOnLeaf(leaf, &cnt_leaf_data);
+  double i_penalty_split = cegb_config->penalty_split * cnt_leaf_data;
+
   for (int i_feature = 0; i_feature < num_features_; i_feature++) {
     double i_gain = leaf_feature_splits[leaf][i_feature].gain;
     double i_penalty_lazy = 0.0f;
@@ -168,7 +172,7 @@ void CEGBTreeLearner::FindBestSplitForLeaf(int leaf) {
     if (i_gain < 0.0f)
       gain[i_feature] = -INFINITY;
     else
-      gain[i_feature] = i_gain - cegb_config->tradeoff * (i_penalty_lazy + i_penalty_coupled);
+      gain[i_feature] = i_gain - cegb_config->tradeoff * (i_penalty_lazy + i_penalty_coupled + i_penalty_split);
   }
 
   auto best_idx = ArrayArgs<double>::ArgMax(gain);
@@ -201,7 +205,6 @@ void CEGBTreeLearner::FindBestSplitsForLeaves() {
 
 void CEGBTreeLearner::Split(Tree *tree, int best_leaf, int *left_leaf, int *right_leaf) {
   const SplitInfo &best_split_info = best_split_per_leaf_[best_leaf];
-  const int inner_feature_index = train_data_->InnerFeatureIndex(best_split_info.feature);
   const int real_feature_index = best_split_info.feature;
 
   data_size_t cnt_leaf_data = 0;
@@ -226,6 +229,44 @@ void CEGBTreeLearner::Split(Tree *tree, int best_leaf, int *left_leaf, int *righ
 
   SerialTreeLearner::Split(tree, best_leaf, left_leaf, right_leaf);
   leaf_feature_splits.erase(best_leaf);
+}
+
+Tree* CEGBTreeLearner::Train(const score_t* gradients, const score_t *hessians, bool is_constant_hessian) {
+  gradients_ = gradients;
+  hessians_ = hessians;
+  is_constant_hessian_ = is_constant_hessian;
+  // some initial works before training
+  BeforeTrain();
+
+  auto tree = std::unique_ptr<Tree>(new Tree(tree_config_->num_leaves));
+  // root leaf
+  int left_leaf = 0;
+  int cur_depth = 1;
+  // only root leaf can be splitted on first time
+  int right_leaf = -1;
+  for (int split = 0; split < tree_config_->num_leaves - 1; ++split) {
+    // some initial works before finding best split
+    if (BeforeFindBestSplit(tree.get(), left_leaf, right_leaf)) {
+      // find best threshold for every feature
+      FindBestThresholds();
+      // find best split from all features
+      FindBestSplitsForLeaves();
+    }
+    // Get a leaf with max split gain
+    int best_leaf = static_cast<int>(ArrayArgs<SplitInfo>::ArgMax(best_split_per_leaf_));
+    // Get split information for best leaf
+    const SplitInfo& best_leaf_SplitInfo = best_split_per_leaf_[best_leaf];
+    // cannot split, quit
+    if (std::isinf(best_leaf_SplitInfo.gain) || std::isnan(best_leaf_SplitInfo.gain)) {
+      Log::Info("No further splits with positive gain, best gain: %f", best_leaf_SplitInfo.gain);
+      break;
+    }
+    // split tree with best leaf
+    Split(tree.get(), best_leaf, &left_leaf, &right_leaf);
+    cur_depth = std::max(cur_depth, tree->leaf_depth(left_leaf));
+  }
+  Log::Info("Trained a tree with leaves=%d and max_depth=%d", tree->num_leaves(), cur_depth);
+  return tree.release();
 }
 
 } // namespace LightGBM

@@ -32,7 +32,8 @@ public:
   */
   Predictor(Boosting* boosting, int num_iteration,
             bool is_raw_score, bool is_predict_leaf_index, bool is_predict_cost,
-            bool early_stop, int early_stop_freq, double early_stop_margin) {
+            bool early_stop, int early_stop_freq, double early_stop_margin,
+            const BoostingConfig* config = nullptr) {
 
     early_stop_ = CreatePredictionEarlyStopInstance("none", LightGBM::PredictionEarlyStopConfig());
     if (early_stop && !boosting->NeedAccuratePrediction()) {
@@ -51,7 +52,8 @@ public:
     {
       num_threads_ = omp_get_num_threads();
     }
-    boosting->InitPredict(num_iteration);
+
+    boosting->InitPredict(num_iteration, config);
     boosting_ = boosting;
     num_pred_one_row_real_ = num_pred_one_row_ = boosting_->NumPredictOneRow(num_iteration, is_predict_leaf_index);
     num_feature_ = boosting_->MaxFeatureIdx() + 1;

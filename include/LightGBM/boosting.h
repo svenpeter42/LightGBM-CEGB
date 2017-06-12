@@ -240,6 +240,13 @@ public:
   * \param num_iteration number of used iteration
   */
   virtual void InitPredict(int num_iteration) = 0;
+
+  /*!
+  * \brief Initial work for the prediction
+  * \param num_iteration number of used iteration
+  * \param config Configs for boosting prediction
+  */
+  virtual void InitPredict(int num_iteration, const BoostingConfig* config);
   
   /*!
   * \brief Name of submodel

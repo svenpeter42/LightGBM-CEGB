@@ -67,6 +67,7 @@ protected:
   void FindBestSplitsForLeaves() override;
   void FindBestThresholds() override;
   void Split(Tree *, int, int *, int *) override;
+  Tree* Train(const score_t* , const score_t *, bool ) override;
 
 private:
   const CEGBConfig *cegb_config;

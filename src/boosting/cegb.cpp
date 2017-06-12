@@ -139,6 +139,13 @@ inline void CEGB::InitPredict(int num_iteration) {
   }
 }
 
+void CEGB::InitPredict(int num_iteration, const BoostingConfig *config) {
+  CEGB::InitPredict(num_iteration);
+
+  if (config != nullptr)
+    predict_penalty_split = config->cegb_config.penalty_split;
+}
+
 void CEGB::PredictMulti(const double *features, double *output_raw, double *output, double *leaf, double *cost) const {
 
   std::set<int> features_used;

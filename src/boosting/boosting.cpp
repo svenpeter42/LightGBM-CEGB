@@ -115,4 +115,9 @@ void Boosting::PredictMulti(
   Log::Fatal("Boosting::PredictMulti has not been implemented yet.");
 }
 
+void Boosting::InitPredict(int num_iteration, const BoostingConfig* config)
+{
+  InitPredict(num_iteration);
+}
+
 }  // namespace LightGBM

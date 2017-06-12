@@ -209,10 +209,11 @@ public:
     IOConfig config;
     CEGBConfig config_cegb;
     config.Set(param);
-    config_cegb.Set(param);
+    BoostingConfig config_boosting;
+    config_boosting.Set(param);
 
     Predictor predictor(boosting_.get(), num_iteration, false, true, true,
-                        config.pred_early_stop, config.pred_early_stop_freq, config.pred_early_stop_margin);
+                        config.pred_early_stop, config.pred_early_stop_freq, config.pred_early_stop_margin, &config_boosting);
     int64_t num_preb_in_one_row = 2 * boosting_->NumPredictOneRow(num_iteration, true);
     auto pred_fun = predictor.GetPredictFunction();
     OMP_INIT_EX();
