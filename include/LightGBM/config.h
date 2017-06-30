@@ -229,6 +229,7 @@ public:
   double tradeoff;
   double penalty_split;
   bool independent_branches;
+  bool predict_lazy;
 
   std::map<int, double> penalty_feature_lazy;
   std::map<int, double> penalty_feature_coupled;

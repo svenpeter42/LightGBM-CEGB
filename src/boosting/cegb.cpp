@@ -113,9 +113,14 @@ inline void CEGB::InitPredict(int num_iteration) {
 
   models_costinfo.clear();
   models_costinfo.resize(num_iteration_for_pred_);
+  models_cost_coupled.clear();
+  models_cost_coupled.resize(num_iteration_for_pred_);
 
   for (int i = 0; i < num_iteration_for_pred_; ++i)
     models_costinfo[i].resize(models_[i]->num_leaves());
+
+  double cost_coupled = 0.0f;
+  std::set<int> cost_coupled_features;
 
   for (int i = 0; i < num_iteration_for_pred_; ++i) {
     auto &model = models_[i];
@@ -132,18 +137,34 @@ inline void CEGB::InitPredict(int num_iteration) {
       std::vector<int> &path = paths[i_leaf];
 
       for (int i_split_node : path) {
-        cinfo.features.insert(model->split_feature(i_split_node));
+        int i_feature = model->split_feature(i_split_node);
+
+        cinfo.features.insert(i_feature);
         cinfo.n_splits++;
+
+        if (cost_coupled_features.find(i_feature) == cost_coupled_features.end()) {
+          cost_coupled_features.insert(i_feature);
+          cost_coupled += find_cost_or_zero(predict_penalty_feature_coupled, i_feature);
+        }
+
+        models_cost_coupled[i] = cost_coupled;
       }
     }
   }
 }
 
 void CEGB::InitPredict(int num_iteration, const BoostingConfig *config) {
+  if (config != nullptr) {
+    predict_penalty_split = config->cegb_config.penalty_split;
+
+    if (config->cegb_config.predict_lazy) {
+      predict_penalty_feature_lazy = predict_penalty_feature_coupled;
+      predict_penalty_feature_coupled.clear();
+    }
+  }
+
   CEGB::InitPredict(num_iteration);
 
-  if (config != nullptr)
-    predict_penalty_split = config->cegb_config.penalty_split;
 }
 
 void CEGB::PredictMulti(const double *features, double *output_raw, double *output, double *leaf, double *cost) const {
@@ -161,14 +182,14 @@ void CEGB::PredictMulti(const double *features, double *output_raw, double *outp
     int i_leaf = model->PredictLeafIndex(features);
 
     const detail::CEGB_CostInfo &cinfo = models_costinfo[i][i_leaf];
+    // const std::set<int> &model_features = models_features_coupled[i];
 
-    // feature penalty
+    // feature penalty for lazy features
     for (int i_feature : cinfo.features) {
       if (features_used.find(i_feature) != features_used.end())
         continue;
 
       i_cost += find_cost_or_zero(predict_penalty_feature_lazy, i_feature);
-      i_cost += find_cost_or_zero(predict_penalty_feature_coupled, i_feature);
       features_used.insert(i_feature);
     }
 
@@ -178,11 +199,14 @@ void CEGB::PredictMulti(const double *features, double *output_raw, double *outp
     // prediction
     i_pred += model->LeafOutput(i_leaf);
 
+    // models_cost_coupled is already the accumulated cost for tree i and therefore
+    // not added to i_cost here but just to cost[i] futher down
+
     if (leaf != nullptr)
       leaf[i] = i_leaf;
 
     if (cost != nullptr)
-      cost[i] = i_cost;
+      cost[i] = i_cost + models_cost_coupled[i];
 
     if (output_raw != nullptr)
       output_raw[i] = i_pred;

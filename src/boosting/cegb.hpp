@@ -87,6 +87,7 @@ private:
   std::vector<int> iter_features_used;
 
   std::vector<std::vector<detail::CEGB_CostInfo>> models_costinfo;
+  std::vector<double> models_cost_coupled;
 
   bool allow_train;
 

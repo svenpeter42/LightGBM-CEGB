@@ -354,6 +354,7 @@ void CEGBConfig::Set(const std::unordered_map<std::string, std::string>& params)
   }
 
   GetBool(params, "cegb_independent_branches", &independent_branches);
+  GetBool(params, "cegb_predict_lazy", &predict_lazy);
 
   std::string value;
   if (GetString(params, "cegb_penalty_feature_lazy", &value))
